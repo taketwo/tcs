@@ -60,7 +60,7 @@ Seed selection
 
 Seed selection works as follows:
 
-1. Hold shift and click a point. A randomly colored square will apear to config
+1. Hold shift and click a point. A randomly colored square will appear to confirm
    the selection. Select more points it you wish, they will all share the same
    label.
 2. Press escape to start selecting points for the next label.
