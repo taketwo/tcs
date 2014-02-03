@@ -1,0 +1,8 @@
+*.png
+*.gif
+*.xcf
+*.pyc
+data/segmentation.pcd
+build/
+bin/
+lib/
