@@ -4,6 +4,7 @@
 #include <pcl/point_types.h>
 #include <pcl/point_traits.h>
 #include <pcl/for_each_type.h>
+#include <pcl/common/concatenate.h>
 
 namespace pcl
 {
@@ -12,14 +13,15 @@ namespace pcl
   {
 
     /* CopyPointHelper and its specializations copy the contents of a source
-     * point to the target point. There are three cases:
+     * point to a target point. There are three cases:
      *
      *  - Points have the same type.
      *    In this case a single `memcpy` is used.
      *
-     *  - Points have different types and these types either
-     *      * have no RGB/RGBA fields;
-     *      * both have RGB fields or both have RGBA fields.
+     *  - Points have different types and one of the following is true:
+     *      * both have RGB fields;
+     *      * both have RGBA fields;
+     *      * one or both have no RGB/RGBA fields.
      *    In this case we find the list of common fields and copy their
      *    contents one by one with `NdConcatenateFunctor`.
      *
@@ -32,16 +34,10 @@ namespace pcl
      *
      * An appropriate version of CopyPointHelper is instantiated during
      * compilation time automatically, so there is absolutely no run-time
-     * overhead.
-     */
+     * overhead. */
 
     template <typename PointInT, typename PointOutT, typename Enable = void>
-    struct CopyPointHelper
-    {
-      void operator () (const PointInT& point_in, PointOutT& point_out) const
-      {
-      }
-    };
+    struct CopyPointHelper { };
 
     template <typename PointInT, typename PointOutT>
     struct CopyPointHelper<PointInT, PointOutT, typename boost::enable_if<boost::is_same<PointInT, PointOutT> >::type>
@@ -55,10 +51,10 @@ namespace pcl
     template <typename PointInT, typename PointOutT>
     struct CopyPointHelper<PointInT, PointOutT,
                            typename boost::enable_if<boost::mpl::and_<boost::mpl::not_<boost::is_same<PointInT, PointOutT> >,
-                                                                      boost::mpl::or_<boost::mpl::and_<boost::mpl::not_<pcl::traits::has_color<PointInT> >,
-                                                                                                       boost::mpl::not_<pcl::traits::has_color<PointOutT> > >,
+                                                                      boost::mpl::or_<boost::mpl::not_<pcl::traits::has_color<PointInT> >,
+                                                                                      boost::mpl::not_<pcl::traits::has_color<PointOutT> >,
                                                                                       boost::mpl::and_<pcl::traits::has_field<PointInT, pcl::fields::rgb>,
-                                                                                                       pcl::traits::has_field<PointOutT, pcl::fields::rgb>>,
+                                                                                                       pcl::traits::has_field<PointOutT, pcl::fields::rgb> >,
                                                                                       boost::mpl::and_<pcl::traits::has_field<PointInT, pcl::fields::rgba>,
                                                                                                        pcl::traits::has_field<PointOutT, pcl::fields::rgba> > > > >::type>
     {

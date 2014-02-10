@@ -58,7 +58,7 @@ namespace impl
 
     float operator () (const point_type& p1, const point_type& p2) const
     {
-      return ((p1.curvature > 0.0f || p2.curvature > 0.0f) ? 1.0f : -1.0f);
+      return ((p1.curvature > 0.0f && p2.curvature > 0.0f) ? 1.0f : -1.0f);
     }
 
     std::string to_str () const

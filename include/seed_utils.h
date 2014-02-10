@@ -6,10 +6,11 @@
 #include <pcl/common/utils.h>
 #include <pcl/kdtree/io.h>
 
-#include "color.h"
+#include "tviewer/color.h"
 
 typedef pcl::PointXYZL SeedT;
 typedef pcl::PointCloud<SeedT> SeedCloudT;
+typedef SeedCloudT::Ptr SeedCloudTPtr;
 
 namespace seeds
 {
@@ -19,7 +20,7 @@ createColoredCloudFromSeeds (const SeedCloudT& seeds)
 {
   typename pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGBA>);
   cloud->resize (seeds.size ());
-  std::map<uint32_t, Color> color_map;
+  std::map<uint32_t, tviewer::Color> color_map;
   for (size_t i = 0; i < seeds.size (); ++i)
   {
     const auto& s = seeds.at (i);
@@ -28,7 +29,7 @@ createColoredCloudFromSeeds (const SeedCloudT& seeds)
     p.y = s.y;
     p.z = s.z;
     if (color_map.count (s.label) == 0)
-      color_map[s.label] = generateRandomColor ();
+      color_map[s.label] = tviewer::generateRandomColor ();
     p.rgba = color_map[s.label];
   }
   return cloud;

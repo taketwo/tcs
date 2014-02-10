@@ -143,17 +143,17 @@ pcl::segmentation::RandomWalkerSegmentation<PointT>::preComputeGraph ()
       using namespace pcl::graph::weight;
       weight_computer<PointWithNormal,
                       terms<
-                        tag::normalized<tag::xyz>
+                        tag::normalized<tag::xyz, tag::graph>
                       , tag::drop_if_convex<tag::normal>
                       , tag::drop_if_convex<tag::curvature>
-                      , tag::normalized<tag::color>
+                      , tag::normalized<tag::color, tag::graph>
                      >,
                      pcl::graph::weight::function::gaussian,
                      pcl::graph::weight::policy::coerce
-                     > computeWeights (tag::xyz::scale = 1.0f,
-                                       tag::normal::scale = 0.08f,
-                                       tag::curvature::scale = 0.006f,
-                                       tag::color::scale = 0.5f,
+                     > computeWeights (tag::xyz::scale = 3.0f,
+                                       tag::normal::scale = 0.01f,
+                                       tag::curvature::scale = 0.0001f,
+                                       tag::color::scale = 3.0f,
                                        tag::weight::threshold = 1e-5);
       MEASURE_RUNTIME ("Computing edge weights... ", computeWeights (*graph_));
     }

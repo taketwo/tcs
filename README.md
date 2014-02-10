@@ -5,10 +5,10 @@ Installation
    Its dependencies include Boost and Eigen, make sure that Boost is at least
    **1.53** and Eigen is at least **3.2**.
 
-2. Clone this repository and make out-of-source build:
+2. Clone this repository (recursively) and make out-of-source build:
 
 ```bash
-git clone tcs
+git clone --recursive https://github.com/taketwo/tcs.git tcs
 cd tcs
 mkdir build
 cd build

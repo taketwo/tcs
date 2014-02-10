@@ -51,18 +51,12 @@ namespace tag
 
 namespace tag
 {
-  template <typename Term>
+  template <typename Term, typename NormalizationType>
   struct normalized;
 
   template <typename Term>
   struct drop_if_convex;
 }
-
-template <typename Computer>
-struct normalized_computer_base;
-
-template <typename Computer>
-struct normalized_computer;
 
 template <typename Point,
           typename Terms,

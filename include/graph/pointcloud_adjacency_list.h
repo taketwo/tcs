@@ -44,6 +44,7 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/common/io.h>
 
 namespace boost
 {
@@ -192,16 +193,35 @@ namespace boost
       {
       }
 
+      /** Copy constructor.
+        *
+        * Acts just like the standard copy constructor of boost::adjacency_list,
+        * i.e. copies vertex and edge set along with associated properties.
+        * Note that a deep copy of the underlying point cloud is made. */
       pointcloud_adjacency_list (const pointcloud_adjacency_list& x)
       : Base (x)
       {
+        typename pcl::PointCloud<PointT>::Ptr copy (new pcl::PointCloud<PointT>);
+        pcl::copyPointCloud (*get_property_value (*(x.m_property), graph_bundle), *copy);
+        get_property_value (*m_property, graph_bundle) = copy;
       }
 
+      /** Assignment operator.
+        *
+        * Acts just like the standard assignment operator of
+        * boost::adjacency_list, i.e. copies vertex and edge set along with
+        * associated properties. Note that a deep copy of the underlying point
+        * cloud is made. */
       pointcloud_adjacency_list&
       operator= (const pointcloud_adjacency_list& x)
       {
         if (&x != this)
+        {
           Base::operator= (x);
+          typename pcl::PointCloud<PointT>::Ptr copy (new pcl::PointCloud<PointT>);
+          pcl::copyPointCloud (*get_property_value (*(x.m_property), graph_bundle), *copy);
+          get_property_value (*m_property, graph_bundle) = copy;
+        }
         return (*this);
       }
 
@@ -284,6 +304,17 @@ namespace boost
     return (get_property_value (*g.m_property, graph_bundle_t ()));
   }
 
+  template <PCADJLIST_PARAMS>
+  inline pcl::PointIndices::ConstPtr
+  get_indices (const PCADJLIST& g)
+  {
+    pcl::PointIndices::Ptr indices (new pcl::PointIndices);
+    indices->indices.resize (num_vertices (g));
+    for (size_t i = 0; i < num_vertices (g); ++i)
+      indices->indices[i] = i;
+    return (indices);
+  }
+
   // TODO: Should this create a new subgraph cloud?
 
   template <PCADJLIST_PARAMS>
@@ -291,6 +322,19 @@ namespace boost
   get_pointcloud (const subgraph<PCADJLIST>& g)
   {
     return (get_property (g.root ().m_graph, graph_bundle_t ()));
+  }
+
+  template <PCADJLIST_PARAMS>
+  inline pcl::PointIndices::ConstPtr
+  get_indices (const subgraph<PCADJLIST>& g)
+  {
+    if (g.is_root ())
+      return get_indices (g.m_graph);
+    pcl::PointIndices::Ptr indices (new pcl::PointIndices);
+    indices->indices.resize (num_vertices (g));
+    for (size_t i = 0; i < num_vertices (g); ++i)
+      indices->indices[i] = g.m_global_vertex[i];
+    return (indices);
   }
 
   /* The purpose of these specializations of templated get/put functions is to

@@ -49,15 +49,20 @@ namespace pcl
 
     /** \brief Compute normals and curvatures for all vertices in a graph.
       *
-      * For each vertex the function finds its 2-ring neighbors and uses
-      * pcl::computePointNormal() to calculate normal and curvature. It
-      * also flips the calculated normal towards 0,0,0 viewpoint.
+      * For each vertex the function finds its 1- or 2-ring neighbors and uses
+      * pcl::computePointNormal() to calculate normal and curvature. It also
+      * flips the calculated normal towards 0,0,0 viewpoint.
+      *
+      * \param[in] neighborhood_1ring flag which controls whether 1- or 2- ring
+      * neighborhood is used. Default is 2-ring, which is slower, but produces
+      * smoother normals.
       *
       * \author Sergey Alexandrov
       * \ingroup graph
       */
     template <typename Graph> void
-    computeNormalsAndCurvatures (Graph& graph);
+    computeNormalsAndCurvatures (Graph& graph, bool neighborhood_1ring = false);
+
 
     /** \brief Compute the type of curvature (concave/convex) for each vertex.
       *
@@ -72,6 +77,7 @@ namespace pcl
       */
     template <typename Graph> void
     computeSignedCurvatures (Graph& graph);
+
 
     /** \brief Find connected components in a graph and create a subgraph for
       * each of them.
@@ -98,6 +104,72 @@ namespace pcl
     template <typename Graph> size_t
     createSubgraphsFromConnectedComponents (Graph& graph,
                                             std::vector<boost::reference_wrapper<Graph> >& subgraphs);
+
+
+    /** \brief Create two subgraphs of a given graph, one containing the points
+      * with the given indices, and the other containing the remaining points.
+      *
+      * In order to allow creation of subgraphs, the graph type should be an
+      * instantiation of boost::subgraph template. Note that the graph is
+      * passed by non-const reference, because subgraph creation modifies the
+      * parent graph. Also, note that the created subgraphs are output as
+      * references wrapped with boost::reference_wrapper. The reason is that
+      * the factory function for subgraph creation in BGL returns newly created
+      * subgraphs by reference.
+      *
+      * \param[in]  graph an input graph
+      * \param[in]  indices indices of points to be inserted in the first
+      *             subgraph
+      * \param[out] subgraphs a vector of references to created subgraps
+      *
+      * \author Sergey Alexandrov
+      * \ingroup graph
+      * */
+    template <typename Graph> void
+    createSubgraphsFromIndices (Graph& graph,
+                                const pcl::PointIndices& indices,
+                                std::vector<boost::reference_wrapper<Graph> >& subgraphs);
+
+
+    /** \brief Create subgraphs of a given graph containing vertices from a
+      * given indices vector.
+      *
+      * For each set of indices in the \p indices vector this function will
+      * create a subgraph containing corresponding vertices of the parent
+      * graph. An additional subgraph containing all the remaining vertices
+      * (not included in any other subgraph) will be created as well.
+      *
+      * In order to allow creation of subgraphs, the graph type should be an
+      * instantiation of boost::subgraph template. Note that the graph is
+      * passed by non-const reference, because subgraph creation modifies the
+      * parent graph. Also, note that the created subgraphs are output as
+      * references wrapped with boost::reference_wrapper. The reason is that
+      * the factory function for subgraph creation in BGL returns newly created
+      * subgraphs by reference.
+      *
+      * \param[in]  graph an input graph
+      * \param[in]  indices a vector of indices of points to be inserted in the
+      *             subgraphs
+      * \param[out] subgraphs a vector of references to created subgraps
+      *
+      * \author Sergey Alexandrov
+      * \ingroup graph
+      * */
+    template <typename Graph> void
+    createSubgraphsFromIndices (Graph& graph,
+                                const std::vector<pcl::PointIndices>& indices,
+                                std::vector<boost::reference_wrapper<Graph> >& subgraphs);
+
+
+    /** \brief Apply bilateral filtering to a given point cloud graph.
+      *
+      * TODO: add detailed documentation and tests.
+      *
+      * \author Sergey Alexandrov
+      * \ingroup graph
+      * */
+    template <typename Graph> void
+    smoothen (Graph& graph, float spatial_sigma, float influence_sigma);
 
   }
 

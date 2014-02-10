@@ -32,9 +32,21 @@ typedef pcl::PointCloud<NormalT> NormalCloudT;
 typedef typename pcl::segmentation::RandomWalkerSegmentation<PointT>::Graph Graph;
 typedef typename pcl::segmentation::RandomWalkerSegmentation<PointT>::GraphPtr GraphPtr;
 
+using namespace pcl::graph::weight;
+typedef weight_computer<PointWithNormalT,
+                        terms<
+                          tag::normalized<tag::xyz, tag::graph>
+                        , tag::drop_if_convex<tag::normal>
+                        , tag::drop_if_convex<tag::curvature>
+                        , tag::normalized<tag::color, tag::graph>
+                        >,
+                        pcl::graph::weight::function::gaussian,
+                        policy::coerce
+                        > WeightComputer;
+
 int main (int argc, char ** argv)
 {
-  factory::WeightComputerFactory<PointWithNormalT, Graph> wc_factory;
+  factory::WeightComputerFactory<WeightComputer> wc_factory;
   factory::GraphBuilderFactory<PointT, Graph> gb_factory;
 
   if (argc < 2 || pcl::console::find_switch (argc, argv, "--help"))
@@ -44,7 +56,6 @@ int main (int argc, char ** argv)
                                "--load-seeds <pcd-file>\n"
                                "--save\n"
                                "--save-clusters\n"
-                               "--no-gui\n"
                                "--potential\n"
                                "--fixed-colors\n"
                                "%s\n"
@@ -77,7 +88,7 @@ int main (int argc, char ** argv)
 
   bool option_save = pcl::console::find_switch (argc, argv, "--save");
   bool option_save_clusters = pcl::console::find_switch (argc, argv, "--save-clusters");
-  bool mode_no_gui = pcl::console::find_switch (argc, argv, "--no-gui");
+  bool mode_no_gui = pcl::console::find_switch (argc, argv, "--tv-no-gui");
 
   if (mode_no_gui && !option_load_seeds)
   {
@@ -98,9 +109,9 @@ int main (int argc, char ** argv)
 
 
   using namespace tviewer;
-  auto viewer = create (!mode_no_gui);
+  auto viewer = create (argc, argv);
 
-  viewer->registerVisualizationObject<PointCloudObject<PointT>> (
+  viewer->add<PointCloudObject<PointT>> (
       "input",
       "input point cloud",
       "i",
@@ -122,6 +133,8 @@ int main (int argc, char ** argv)
 
   MEASURE_RUNTIME ("Building graph... ", gb->compute (graph));
   MEASURE_RUNTIME ("Computing normals... ", pcl::graph::computeNormalsAndCurvatures (graph));
+  MEASURE_RUNTIME ("Smoothening graph... ", pcl::graph::smoothen (graph, 0.012, 0.0012));
+  MEASURE_RUNTIME ("Computing normals... ", pcl::graph::computeNormalsAndCurvatures (graph));
   MEASURE_RUNTIME ("Computing curvature signs... ", pcl::graph::computeSignedCurvatures (graph));
   MEASURE_RUNTIME ("Computing edge weights... ", wc (graph));
 
@@ -138,7 +151,7 @@ int main (int argc, char ** argv)
   typedef GraphVisualizer<Graph> GraphVisualizer;
   GraphVisualizer gv (graph);
 
-  viewer->registerVisualizationObject<PointCloudObject<pcl::PointXYZRGBA>> (
+  viewer->add<PointCloudObject<pcl::PointXYZRGBA>> (
       "vertices",
       "graph vertices",
       "v",
@@ -147,7 +160,7 @@ int main (int argc, char ** argv)
       0.95
   );
 
-  viewer->registerVisualizationObject<PointCloudObject<pcl::PointXYZRGBA>> (
+  viewer->add<PointCloudObject<pcl::PointXYZRGBA>> (
       "curvature",
       "vertex curvature",
       "C",
@@ -156,7 +169,7 @@ int main (int argc, char ** argv)
       0.95
   );
 
-  viewer->registerVisualizationObject<NormalCloudObject> (
+  viewer->add<NormalCloudObject> (
       "normals",
       "vertex normals",
       "n",
@@ -165,14 +178,14 @@ int main (int argc, char ** argv)
       0.01
   );
 
-  viewer->registerVisualizationObject<PolyDataObject> (
+  viewer->add<PolyDataObject> (
       "edges",
       "adjacency edges",
       "a",
       gv.getEdgesPolyData ()
   );
 
-  viewer->showVisualizationObject ("vertices");
+  viewer->show ("vertices");
 
 
   /*********************************************************************
@@ -194,7 +207,7 @@ int main (int argc, char ** argv)
       pcl::io::savePCDFile (seeds_save_filename, *seeds_cloud);
   }
 
-  viewer->registerVisualizationObject<PointCloudObject<PointT>> (
+  viewer->add<PointCloudObject<PointT>> (
       "seeds",
       "random walker seeds",
       "S",
@@ -218,26 +231,27 @@ int main (int argc, char ** argv)
 
   rws.segment (clusters);
 
-  viewer->registerVisualizationObject<PointCloudWithColorShufflingObject<pcl::PointXYZRGBA>> (
+  viewer->add<PointCloudWithColorShufflingObject> (
       "clusters",
       "object clusters",
       "c",
       option_fixed_colors ?
-      std::bind (&GraphVisualizer::getVerticesCloudColorsFromPropertyFixed, gv) :
-      std::bind (&GraphVisualizer::getVerticesCloudColorsFromPropertyRandom, gv),
+        gv.getVerticesCloudColorsFromMapFixed ()
+      :
+        gv.getVerticesCloudColorsFromMapRandom (),
       3,
       1.0
   );
 
-  viewer->updateVisualizationObjects ();
-  viewer->hideVisualizationObject ("vertices");
+  viewer->updateAll ();
+  viewer->hide ("vertices");
 
   if (mode_potential)
   {
     size_t index = 0;
     Eigen::VectorXf potential = rws.getPotentials ().col (0);
 
-    viewer->registerVisualizationObject<PointCloudObject<PointT>> (
+    viewer->add<PointCloudObject<PointT>> (
         "potential",
         "random walker potentials",
         "p",
@@ -246,8 +260,8 @@ int main (int argc, char ** argv)
         1.0
     );
 
-    viewer->updateVisualizationObject ("potential");
-    viewer->showVisualizationObject ("potential");
+    viewer->update ("potential");
+    viewer->show ("potential");
 
     while (viewer->waitPointSelected (index))
     {
@@ -260,13 +274,13 @@ int main (int argc, char ** argv)
       {
         pcl::console::print_info ("Potential for vertex %zu (color %zu)\n", index, color);
         potential = rws.getPotentials ().col (color - 1);
-        viewer->updateVisualizationObject ("potential");
+        viewer->update ("potential");
       }
     }
   }
   else
   {
-    viewer->showVisualizationObject ("clusters");
+    viewer->show ("clusters");
     viewer->run ();
   }
 

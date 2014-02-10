@@ -446,21 +446,21 @@ namespace detail
 
       typedef
         boost::mpl::count_if<
-          config::computers_mpl_vector
+          computers_mpl_vector
         , detail::with_normalization<boost::mpl::_1>
         >
       normalized_terms_count;
 
       typedef
         boost::mpl::count_if<
-          config::computers_mpl_vector
+          computers_mpl_vector
         , detail::with_droppable<boost::mpl::_1>
         >
       droppable_terms_count;
 
       typedef
         typename boost::mpl::greater<
-          typename config::normalized_terms_count
+          normalized_terms_count
         , boost::mpl::int_<0>
         >::type
       has_normalized_terms;
@@ -468,7 +468,7 @@ namespace detail
       typedef
         typename boost::mpl::and_<
           typename boost::mpl::greater<
-            typename config::droppable_terms_count
+            droppable_terms_count
           , boost::mpl::int_<0>
           >
         , is_satisfied<

@@ -9,7 +9,7 @@
 #include <vtkSmartPointer.h>
 
 #include "as_range.h"
-#include "color.h"
+#include "tviewer/color.h"
 
 #include "graph/pointcloud_adjacency_list.h"
 
@@ -23,7 +23,7 @@ class GraphVisualizer
     typedef typename pcl::PointCloud<pcl::PointNormal> NormalCloudT;
 
     typedef typename boost::graph_traits<GraphT>::vertex_iterator VertexIterator;
-    typedef typename boost::graph_traits<GraphT>::edge_iterator   EdgeIterator;
+    typedef typename boost::graph_traits<GraphT>::edge_iterator EdgeIterator;
 
     GraphVisualizer (const GraphT& g)
     : graph_ (g)
@@ -52,7 +52,7 @@ class GraphVisualizer
         line->GetPointIds ()->SetId (0, id++);
         line->GetPointIds ()->SetId (1, id++);
         cells->InsertNextCell (line);
-        getRGBFromColor (getJetColor (scale (boost::get (boost::edge_weight_t (), graph_, *s))), c);
+        tviewer::getRGBFromColor (tviewer::getColor (scale (boost::get (boost::edge_weight_t (), graph_, *s))), c);
         colors->InsertNextTupleValue (c);
       }
       polydata->SetPoints (points);
@@ -97,21 +97,39 @@ class GraphVisualizer
     }
 
     typename PointCloudT::Ptr
-    getVerticesCloudColorsFromPropertyRandom ()
+    getVerticesCloudColorsFromMapRandom ()
     {
-      return constructVerticesCloud (MODE_FROM_PROPERTY_RANDOM);
+      return constructVerticesCloud (boost::get (boost::vertex_color, graph_), MODE_RANDOM);
+    }
+
+    template <typename VertexColorMap> typename PointCloudT::Ptr
+    getVerticesCloudColorsFromMapRandom (VertexColorMap map)
+    {
+      return constructVerticesCloud (map, MODE_RANDOM);
     }
 
     typename PointCloudT::Ptr
-    getVerticesCloudColorsFromPropertyFixed ()
+    getVerticesCloudColorsFromMapFixed ()
     {
-      return constructVerticesCloud (MODE_FROM_PROPERTY_FIXED);
+      return constructVerticesCloud (boost::get (boost::vertex_color, graph_), MODE_FIXED);
+    }
+
+    template <typename VertexColorMap> typename PointCloudT::Ptr
+    getVerticesCloudColorsFromMapFixed (VertexColorMap map)
+    {
+      return constructVerticesCloud (map, MODE_FIXED);
     }
 
     typename PointCloudT::Ptr
-    getVerticesCloudColorsFromPropertyPersistent ()
+    getVerticesCloudColorsFromMapPersistent ()
     {
-      return constructVerticesCloud (MODE_FROM_PROPERTY_PERSISTENT);
+      return constructVerticesCloud (boost::get (boost::vertex_color, graph_), MODE_PERSISTENT);
+    }
+
+    template <typename VertexColorMap> typename PointCloudT::Ptr
+    getVerticesCloudColorsFromMapPersistent (VertexColorMap map)
+    {
+      return constructVerticesCloud (map, MODE_PERSISTENT);
     }
 
     typename PointCloudT::Ptr
@@ -127,9 +145,9 @@ class GraphVisualizer
     {
       MODE_NATURAL,
       MODE_CURVATURE,
-      MODE_FROM_PROPERTY_RANDOM,
-      MODE_FROM_PROPERTY_FIXED,
-      MODE_FROM_PROPERTY_PERSISTENT,
+      MODE_RANDOM,
+      MODE_FIXED,
+      MODE_PERSISTENT,
     };
 
     typename PointCloudT::Ptr
@@ -137,51 +155,12 @@ class GraphVisualizer
     {
       PointCloudT::Ptr cloud (new PointCloudT);
       copyPointCloud (*boost::get_pointcloud (graph_), *cloud);
-      std::map<uint32_t, Color> colormap;
-      const std::vector<Color> COLORS = { 0x9E9E9E, 0x29CC00, 0x008FCC, 0xA300CC, 0xCC3D00, 0xFFDD00, 0x63E6E6, 0xA5E663, 0x9E2B2B };
-      size_t c = 0;
-      for (const auto& s : as_range (boost::vertices (graph_)))
-      {
-        switch (mode)
-        {
-          case MODE_NATURAL:
-            {
-              break;
-            }
-          case MODE_CURVATURE:
-            {
-              // The curvature produced by PCAG is signed.
-              // Empirically the absolute value of the curvature is below 0.25,
-              // so it is safe (i.e. we end up in 0...1 region) to add 0.5.
-              cloud->at (s).rgba = getJetColor (graph_[s].curvature + 0.5);
-              break;
-            }
-          case MODE_FROM_PROPERTY_RANDOM:
-            {
-              auto color_id = boost::get (boost::vertex_color, graph_, s);
-              if (!colormap.count (color_id))
-                colormap[color_id] = generateRandomColor ();
-              cloud->at (s).rgba = colormap[color_id];
-              break;
-            }
-          case MODE_FROM_PROPERTY_FIXED:
-            {
-              auto color_id = boost::get (boost::vertex_color, graph_, s);
-              if (!colormap.count (color_id))
-                colormap[color_id] = COLORS[c++];
-              cloud->at (s).rgba = colormap[color_id];
-              break;
-            }
-          case MODE_FROM_PROPERTY_PERSISTENT:
-            {
-              auto color_id = boost::get (boost::vertex_color, graph_, s);
-              if (!colormap_.count (color_id))
-                colormap_[color_id] = generateRandomColor ();
-              cloud->at (s).rgba = colormap_[color_id];
-              break;
-            }
-        }
-      }
+      if (mode == MODE_CURVATURE)
+        for (const auto& s : as_range (boost::vertices (graph_)))
+          // The curvature produced by PCAG is signed.
+          // Empirically the absolute value of the curvature is below 0.25,
+          // so it is safe (i.e. we end up in 0...1 region) to add 0.5.
+          cloud->at (s).rgba = tviewer::getColor (graph_[s].curvature + 0.5);
       return cloud;
     }
 
@@ -194,7 +173,48 @@ class GraphVisualizer
       auto scale = getRangeScalingForVector (colors);
       for (const auto& s : as_range (boost::vertices (graph_)))
       {
-        cloud->at (s).rgba = getJetColor (scale (colors[s]));
+        cloud->at (s).rgba = tviewer::getColor (scale (colors[s]));
+      }
+      return cloud;
+    }
+
+    template <typename VertexColorMap> typename PointCloudT::Ptr
+    constructVerticesCloud (VertexColorMap colors, ColorMode mode)
+    {
+      PointCloudT::Ptr cloud (new PointCloudT);
+      copyPointCloud (*boost::get_pointcloud (graph_), *cloud);
+      std::map<uint32_t, tviewer::Color> colormap;
+      const std::vector<tviewer::Color> COLORS = { 0x9E9E9E, 0x29CC00, 0x008FCC, 0xA300CC, 0xCC3D00, 0xFFDD00, 0x63E6E6, 0xA5E663, 0x9E2B2B };
+      size_t c = 0;
+      for (const auto& s : as_range (boost::vertices (graph_)))
+      {
+        auto color_id = colors[s];
+        switch (mode)
+        {
+          case MODE_RANDOM:
+            {
+              if (!colormap.count (color_id))
+                colormap[color_id] = tviewer::generateRandomColor ();
+              cloud->at (s).rgba = colormap[color_id];
+              break;
+            }
+          case MODE_FIXED:
+            {
+              if (!colormap.count (color_id))
+                colormap[color_id] = COLORS[c++];
+              cloud->at (s).rgba = colormap[color_id];
+              break;
+            }
+          case MODE_PERSISTENT:
+            {
+              if (!colormap_.count (color_id))
+                colormap_[color_id] = tviewer::generateRandomColor ();
+              cloud->at (s).rgba = colormap_[color_id];
+              break;
+            }
+          default:
+            break;
+        }
       }
       return cloud;
     }
@@ -206,11 +226,12 @@ class GraphVisualizer
       for (const auto& s : as_range (boost::edges (graph_)))
       {
         auto v = boost::get (boost::edge_weight_t (), graph_, s);
+        v = std::log (v);
         if (v > max) max = v;
         if (v < min) min = v;
       }
       if (max != min)
-        return [min, max] (float v) { return (v - min) / (max - min); };
+        return [min, max] (float v) { return (std::log (v) - min) / (max - min); };
       else
         return [] (float v) { return 1.0; };
     }
@@ -224,7 +245,7 @@ class GraphVisualizer
     }
 
     const GraphT& graph_;
-    std::map<uint32_t, Color> colormap_;
+    std::map<uint32_t, tviewer::Color> colormap_;
 
 };
 

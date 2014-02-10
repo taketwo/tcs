@@ -1,0 +1,3 @@
+[submodule "third-party/tviewer"]
+	path = third-party/tviewer
+	url = https://github.com/taketwo/tviewer.git

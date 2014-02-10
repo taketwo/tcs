@@ -8,7 +8,6 @@
 
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include "color.h"
 #include "tviewer/tviewer.h"
 #include "hungarian/hungarian.h"
 
@@ -41,9 +40,9 @@ public:
 
     if (with_gui)
     {
+      auto viewer = create ();
       pcl::console::print_error ("Erroneus points: %i (%.2f%%)\n", error, p);
-      viewer_.reset (new TViewer);
-      viewer_->registerVisualizationObject<PointCloudObject<pcl::PointXYZRGBA>> (
+      viewer->add<PointCloudObject<pcl::PointXYZRGBA>> (
           "incorrect",
           "incorrectly segmented points",
           "i",
@@ -51,7 +50,7 @@ public:
           2,
           0.95
       );
-      viewer_->registerVisualizationObject<PointCloudWithColorShufflingObject<pcl::PointXYZRGBA>> (
+      viewer->add<PointCloudWithColorShufflingObject> (
           "groundtruth",
           "groundtruth labeling",
           "t",
@@ -59,7 +58,7 @@ public:
           2,
           0.95
       );
-      viewer_->registerVisualizationObject<PointCloudWithColorShufflingObject<pcl::PointXYZRGBA>> (
+      viewer->add<PointCloudWithColorShufflingObject> (
           "segmentation",
           "segmentation labeling",
           "s",
@@ -67,8 +66,8 @@ public:
           2,
           0.95
       );
-      viewer_->showVisualizationObject ("incorrect");
-      viewer_->run ();
+      viewer->show ("incorrect");
+      viewer->run ();
     }
     else
     {
@@ -216,7 +215,6 @@ private:
         return colorizeByLabel (groundtruth_cloud_, label_map);
       }
       case MODE_BY_ERROR_FLAG:
-      default:
       {
         std::map<size_t, Color> index_map;
         Color normal = 0x0EEBA1;
@@ -242,8 +240,6 @@ private:
 
   pcl::PointCloud<pcl::PointXYZL> segmentation_cloud_;
   pcl::PointCloud<pcl::PointXYZL> groundtruth_cloud_;
-
-  std::unique_ptr<TViewer> viewer_;
 
 };
 

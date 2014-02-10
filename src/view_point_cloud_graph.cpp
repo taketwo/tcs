@@ -35,15 +35,29 @@ typedef boost::subgraph
          boost::property<boost::edge_weight_t, float,
          boost::property<boost::edge_index_t, int>>>> Graph;
 
+using namespace pcl::graph::weight;
+typedef weight_computer<PointWithNormalT,
+                        terms<
+                          tag::normalized<tag::xyz, tag::graph>
+                        , tag::drop_if_convex<tag::normal>
+                        , tag::drop_if_convex<tag::curvature>
+                        , tag::normalized<tag::color, tag::graph>
+                        >,
+                        pcl::graph::weight::function::gaussian,
+                        policy::coerce
+                        > WeightComputer;
 
 int main (int argc, char ** argv)
 {
-  factory::WeightComputerFactory<PointWithNormalT, Graph> wc_factory;
+  factory::WeightComputerFactory<WeightComputer> wc_factory;
   factory::GraphBuilderFactory<PointT, Graph> gb_factory;
 
   if (argc < 2 || pcl::console::find_switch (argc, argv, "--help"))
   {
     pcl::console::print_error ("Usage: %s <pcd-file>\n"
+                               "--1-ring (use 1-ring neighborhood for normal computation)\n"
+                               "--smoothing-spatial <float>\n"
+                               "--smoothing-influence <float>\n"
                                "%s\n"
                                "%s\n"
                                , argv[0]
@@ -58,8 +72,16 @@ int main (int argc, char ** argv)
   if (!load<PointT> (argv[1], cloud, normals))
     return (1);
 
+  bool neighborhood_1ring = pcl::console::find_switch (argc, argv, "--1-ring");
+
+  float spatial_sigma = 0.012f;
+  pcl::console::parse (argc, argv, "--smoothing-spatial", spatial_sigma);
+
+  float influence_sigma = 0.0012f;
+  pcl::console::parse (argc, argv, "--smoothing-influence", influence_sigma);
+
   auto wc = wc_factory.instantiate (argc, argv);
-  pcl::graph::GraphBuilder<PointT, Graph>::Ptr gb = gb_factory.instantiate (argc, argv);
+  auto gb = gb_factory.instantiate (argc, argv);
 
   wc_factory.printValues ();
   gb_factory.printValues ();
@@ -68,7 +90,9 @@ int main (int argc, char ** argv)
   gb->setInputCloud (cloud);
 
   MEASURE_RUNTIME ("Building graph... ", gb->compute (graph));
-  MEASURE_RUNTIME ("Computing normals... ", pcl::graph::computeNormalsAndCurvatures (graph));
+  MEASURE_RUNTIME ("Computing normals... ", pcl::graph::computeNormalsAndCurvatures (graph, neighborhood_1ring));
+  MEASURE_RUNTIME ("Smoothening graph... ", pcl::graph::smoothen (graph, spatial_sigma, influence_sigma));
+  MEASURE_RUNTIME ("Computing normals... ", pcl::graph::computeNormalsAndCurvatures (graph, neighborhood_1ring));
   MEASURE_RUNTIME ("Computing curvature signs... ", pcl::graph::computeSignedCurvatures (graph));
   MEASURE_RUNTIME ("Computing edge weights... ", wc (graph));
 
@@ -80,7 +104,7 @@ int main (int argc, char ** argv)
   auto viewer = create ();
   GraphVisualizer<Graph> gv (graph);
 
-  viewer->registerVisualizationObject<PointCloudObject<PointT>> (
+  viewer->add<PointCloudObject<PointT>> (
       "voxels",
       "voxels centroids",
       "v",
@@ -89,7 +113,7 @@ int main (int argc, char ** argv)
       0.95
   );
 
-  viewer->registerVisualizationObject<PointCloudObject<PointT>> (
+  viewer->add<PointCloudObject<PointT>> (
       "curvature",
       "voxel curvatures",
       "c",
@@ -98,16 +122,7 @@ int main (int argc, char ** argv)
       0.95
   );
 
-  //viewer->registerVisualizationObject<PointCloudObject<PointT>> (
-      //"degree",
-      //"voxel degrees",
-      //"d",
-      //gv.getVerticesCloudColorsDegree (),
-      //4,
-      //0.95
-  //);
-
-  viewer->registerVisualizationObject<NormalCloudObject> (
+  viewer->add<NormalCloudObject> (
       "normals",
       "voxel normals",
       "n",
@@ -116,14 +131,14 @@ int main (int argc, char ** argv)
       0.01
   );
 
-  viewer->registerVisualizationObject<PolyDataObject> (
+  viewer->add<PolyDataObject> (
       "edges",
       "graph adjacency edges",
       "a",
       gv.getEdgesPolyData ()
   );
 
-  viewer->showVisualizationObject ("edges");
+  viewer->show ("edges");
   viewer->run ();
 
   return (0);

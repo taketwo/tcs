@@ -38,6 +38,7 @@
 #define PCL_GRAPH_IMPL_OCTREE_ADJACENCY_GRAPH_BUILDER_HPP
 
 #include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
 
 #include "graph/octree_adjacency_graph_builder.h"
 

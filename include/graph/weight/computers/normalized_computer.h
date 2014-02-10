@@ -42,18 +42,17 @@
 namespace pcl { namespace graph { namespace weight {
 
 template <typename Computer>
-struct normalized_computer_base
+struct vertex_normalized_computer
   : Computer
 {
 
   public:
 
-    typedef normalized_computer_base base;
     typedef boost::mpl::true_ is_normalized;
     typedef typename Computer::point_type point_type;
 
     template <typename Args>
-    normalized_computer_base (const Args& args)
+    vertex_normalized_computer (const Args& args)
     : Computer (args)
     {
     }
@@ -103,7 +102,7 @@ struct normalized_computer_base
     std::string to_str () const
     {
       std::stringstream str;
-      str << "{normalized_computer} << " << Computer::to_str ();
+      str << "{vertex_normalized_computer} << " << Computer::to_str ();
       str << "\n  - edges: ";
       for (size_t i = 0; i < edge_weights.size (); ++i)
         str << edge_weights[i] << " ";
@@ -122,20 +121,71 @@ struct normalized_computer_base
 };
 
 template <typename Computer>
-struct normalized_computer
-  : normalized_computer_base<Computer>
+struct graph_normalized_computer
+  : Computer
 {
 
-  template <typename Args>
-  normalized_computer (const Args& args)
-  : normalized_computer::base (args)
-  {
-  }
+  public:
 
-  normalized_computer (const normalized_computer& that)
-  : normalized_computer::base (*static_cast<typename normalized_computer::base const *> (&that))
-  {
-  }
+    typedef boost::mpl::true_ is_normalized;
+    typedef typename Computer::point_type point_type;
+
+    template <typename Args>
+    graph_normalized_computer (const Args& args)
+    : Computer (args)
+    {
+    }
+
+    void
+    init (size_t num_edges, size_t num_vertices)
+    {
+      edge_weights.resize (num_edges, 0.0f);
+      sum = 0.0f;
+    }
+
+    float
+    round1 (const point_type& p1,
+            const point_type& p2,
+            size_t edge_id,
+            size_t vertex1_id,
+            size_t vertex2_id)
+    {
+      float weight = Computer::operator() (p1, p2);
+      edge_weights[edge_id] = weight;
+      sum += weight;
+      return (weight);
+    }
+
+    void
+    extract ()
+    {
+      sum /= edge_weights.size ();
+    }
+
+    float
+    round2 (size_t edge_id,
+            size_t vertex1_id,
+            size_t vertex2_id) const
+    {
+      float weight = (sum > 0.0f && Computer::scale_ > 0.0f) ? edge_weights[edge_id] / sum / Computer::scale_: 0.0f;
+      return (weight);
+    }
+
+    std::string to_str () const
+    {
+      std::stringstream str;
+      str << "{graph_normalized_computer} << " << Computer::to_str ();
+      str << "\n  - edges: ";
+      for (size_t i = 0; i < edge_weights.size (); ++i)
+        str << edge_weights[i] << " ";
+      str << "\n  - avg: " << sum;
+      return str.str ();
+    }
+
+  private:
+
+    std::vector<float> edge_weights;
+    float sum;
 
 };
 
@@ -225,7 +275,10 @@ namespace detail
 namespace tag
 {
 
-  template <typename Term>
+  struct graph {};
+  struct vertex {};
+
+  template <typename Term, typename NormalizationType>
   struct normalized
     : as_term<Term>::type
   {
@@ -236,30 +289,42 @@ namespace tag
       struct apply
       {
         typedef
-          normalized_computer<
-            typename boost::mpl::apply<typename term_type::impl, Point>::type
-          >
+          typename boost::mpl::apply<
+            typename term_type::impl
+          , Point
+          >::type
+        enclosed_computer_type;
+
+        typedef
+          typename boost::mpl::if_<
+            typename boost::is_same<
+              NormalizationType
+            , graph
+            >::type
+          , graph_normalized_computer<enclosed_computer_type>
+          , vertex_normalized_computer<enclosed_computer_type>
+          >::type
         type;
       };
     };
   };
 
-  template <typename Term>
+  template <typename Term, typename NormalizationType>
   struct as_normalized
   {
-    typedef normalized<Term> type;
+    typedef normalized<Term, NormalizationType> type;
   };
 
-  template <typename Term>
-  struct as_normalized<normalized<Term> >
+  template <typename Term, typename NormalizationType>
+  struct as_normalized<normalized<Term, NormalizationType>, NormalizationType >
   {
-    typedef normalized<Term> type;
+    typedef normalized<Term, NormalizationType> type;
   };
 
 } // namespace tag
 
-template <typename Term>
-struct term_of<tag::normalized<Term> >
+template <typename Term, typename NormalizationType>
+struct term_of<tag::normalized<Term, NormalizationType> >
   : term_of<Term>
 {
 };

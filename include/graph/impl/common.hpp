@@ -37,6 +37,8 @@
 #ifndef PCL_GRAPH_IMPL_COMMON_HPP
 #define PCL_GRAPH_IMPL_COMMON_HPP
 
+#include <set>
+
 #include <boost/graph/connected_components.hpp>
 
 #include <pcl/point_cloud.h>
@@ -46,7 +48,7 @@
 #include "graph/pointcloud_adjacency_list.h"
 
 template <typename Graph> void
-pcl::graph::computeNormalsAndCurvatures (Graph& graph)
+pcl::graph::computeNormalsAndCurvatures (Graph& graph, bool neighborhood_1ring)
 {
   typedef typename boost::vertex_point_type<Graph>::type PointT;
   typedef typename Graph::adjacency_iterator AdjacencyIterator;
@@ -56,15 +58,16 @@ pcl::graph::computeNormalsAndCurvatures (Graph& graph)
 
   for (VertexId vertex = 0; vertex < boost::num_vertices (graph); ++vertex)
   {
-    // Determine 2-ring neighborhood
     std::vector<int> neighbors (1, vertex);
     neighbors.reserve (256);
+
     AdjacencyIterator vi1, ve1, vi2, ve2;
     for (boost::tie (vi1, ve1) = boost::adjacent_vertices (vertex, graph); vi1 != ve1; ++vi1)
     {
       neighbors.push_back (*vi1);
-      for (boost::tie (vi2, ve2) = boost::adjacent_vertices (*vi1, graph); vi2 != ve2; ++vi2)
-        neighbors.push_back (*vi2);
+      if (!neighborhood_1ring)
+        for (boost::tie (vi2, ve2) = boost::adjacent_vertices (*vi1, graph); vi2 != ve2; ++vi2)
+          neighbors.push_back (*vi2);
     }
 
     Eigen::Vector4f normal;
@@ -107,7 +110,8 @@ pcl::graph::computeSignedCurvatures (Graph& graph)
 }
 
 template <typename Graph> size_t
-pcl::graph::createSubgraphsFromConnectedComponents (Graph& graph, std::vector<boost::reference_wrapper<Graph> >& subgraphs)
+pcl::graph::createSubgraphsFromConnectedComponents (Graph& graph,
+                                                    std::vector<boost::reference_wrapper<Graph> >& subgraphs)
 {
   typedef typename Graph::vertex_descriptor VertexId;
   typedef typename boost::reference_wrapper<Graph> GraphRef;
@@ -118,8 +122,102 @@ pcl::graph::createSubgraphsFromConnectedComponents (Graph& graph, std::vector<bo
   for (size_t i = 0; i < num_components; ++i)
     subgraphs.push_back (GraphRef (graph.create_subgraph ()));
   for (VertexId v = 0; v < boost::num_vertices (graph); ++v)
-    boost::add_vertex (v, subgraphs.at (component[v]).get ());
+    boost::add_vertex (graph.local_to_global (v), subgraphs.at (component[v]).get ());
   return num_components;
+}
+
+template <typename Graph> void
+pcl::graph::createSubgraphsFromIndices (Graph& graph,
+                                        const pcl::PointIndices& indices,
+                                        std::vector<boost::reference_wrapper<Graph> >& subgraphs)
+{
+  typedef typename Graph::vertex_descriptor VertexId;
+  typedef typename boost::reference_wrapper<Graph> GraphRef;
+
+  std::set<int> index_set;
+
+  subgraphs.clear ();
+  subgraphs.push_back (GraphRef (graph.create_subgraph ()));
+  subgraphs.push_back (GraphRef (graph.create_subgraph ()));
+  Graph& first = subgraphs.at (0).get ();
+  Graph& second = subgraphs.at (1).get ();
+
+  for (size_t i = 0; i < indices.indices.size (); ++i)
+  {
+    index_set.insert (indices.indices[i]);
+    boost::add_vertex (indices.indices[i], first);
+  }
+
+  for (VertexId v = 0; v < boost::num_vertices (graph); ++v)
+    if (!index_set.count (v))
+      boost::add_vertex (v, second);
+}
+
+template <typename Graph> void
+pcl::graph::createSubgraphsFromIndices (Graph& graph,
+                                        const std::vector<pcl::PointIndices>& indices,
+                                        std::vector<boost::reference_wrapper<Graph> >& subgraphs)
+{
+  typedef typename Graph::vertex_descriptor VertexId;
+  typedef typename boost::reference_wrapper<Graph> GraphRef;
+
+  std::set<int> index_set;
+
+  subgraphs.clear ();
+  for (size_t i = 0; i < indices.size (); ++i)
+  {
+    subgraphs.push_back (GraphRef (graph.create_subgraph ()));
+    Graph& s = subgraphs.back ().get ();
+    for (size_t j = 0; j < indices[i].indices.size (); ++j)
+    {
+      index_set.insert (indices[i].indices[j]);
+      boost::add_vertex (indices[i].indices[j], s);
+    }
+  }
+
+  subgraphs.push_back (GraphRef (graph.create_subgraph ()));
+  Graph& s = subgraphs.back ().get ();
+  for (VertexId v = 0; v < boost::num_vertices (graph); ++v)
+    if (!index_set.count (v))
+      boost::add_vertex (v, s);
+}
+
+template <typename Graph> void
+pcl::graph::smoothen (Graph& graph, float spatial_sigma, float influence_sigma)
+{
+  typedef typename Graph::edge_iterator EdgeIterator;
+  typedef typename Graph::vertex_descriptor VertexId;
+
+  std::vector<float> K (boost::num_vertices (graph), 0);
+  Eigen::MatrixXf P (boost::num_vertices (graph), 3);
+  P.setZero ();
+
+  EdgeIterator ei, ee;
+  for (boost::tie (ei, ee) = boost::edges (graph); ei != ee; ++ei)
+  {
+    const VertexId& src = boost::source (*ei, graph);
+    const VertexId& tgt = boost::target (*ei, graph);
+    const Eigen::Vector3f& p = graph[src].getVector3fMap ();
+    const Eigen::Vector3f& q = graph[tgt].getVector3fMap ();
+    const Eigen::Vector3f& np = graph[src].getNormalVector3fMap ();
+    const Eigen::Vector3f& nq = graph[tgt].getNormalVector3fMap ();
+    Eigen::Vector3f x = p - q;
+    float d1 = nq.dot (x);
+    float d2 = np.dot (-x);
+    float ws = std::exp (- std::pow (x.norm (), 2) / (2 * std::pow (spatial_sigma, 2)));
+    float wi1 = std::exp (- std::pow (d1, 2) / (2 * std::pow (influence_sigma, 2)));
+    float wi2 = std::exp (- std::pow (d2, 2) / (2 * std::pow (influence_sigma, 2)));
+    float w1 = ws * wi1;
+    float w2 = ws * wi2;
+    K[src] += w1;
+    K[tgt] += w2;
+    P.row (src) += nq * d1 * w1;
+    P.row (tgt) += np * d2 * w2;
+  }
+
+  for (VertexId v = 0; v < boost::num_vertices (graph); ++v)
+    if (K[v] > 0.01)
+      graph[v].getVector3fMap () -= P.row (v) / K[v];
 }
 
 #endif /* PCL_GRAPH_IMPL_COMMON_HPP */
