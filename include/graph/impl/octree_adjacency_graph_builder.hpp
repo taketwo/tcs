@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -40,10 +41,9 @@
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
-#include "graph/octree_adjacency_graph_builder.h"
+#include <pcl/common/copy_point.h>
 
-// TODO: replace with a library copyPoint() function as soon as it emerges
-#include "copy_point.h"
+#include "graph/octree_adjacency_graph_builder.h"
 
 template <typename PointT, typename Graph> void
 pcl::graph::OctreeAdjacencyGraphBuilder<PointT, Graph>::compute (Graph& graph)
@@ -65,7 +65,7 @@ pcl::graph::OctreeAdjacencyGraphBuilder<PointT, Graph>::compute (Graph& graph)
   octree_adjacency_->setInputCloud (input_, indices_);
   octree_adjacency_->addPointsFromInputCloud ();
 
-  graph = Graph (boost::make_shared<pcl::PointCloud<PointOutT> > (octree_adjacency_->getLeafCount (), 1));
+  graph = Graph (octree_adjacency_->getLeafCount ());
 
   leaf_vertex_map_.clear ();
   typename OctreeAdjacency::iterator leaf_itr = octree_adjacency_->begin ();

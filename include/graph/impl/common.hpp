@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -39,22 +40,26 @@
 
 #include <set>
 
+#include <boost/concept_check.hpp>
 #include <boost/graph/connected_components.hpp>
 
 #include <pcl/point_cloud.h>
 #include <pcl/features/normal_3d.h>
 
 #include "graph/common.h"
-#include "graph/pointcloud_adjacency_list.h"
+#include "graph/point_cloud_graph.h"
+#include "graph/point_cloud_graph_concept.h"
 
 template <typename Graph> void
 pcl::graph::computeNormalsAndCurvatures (Graph& graph, bool neighborhood_1ring)
 {
-  typedef typename boost::vertex_point_type<Graph>::type PointT;
+  BOOST_CONCEPT_ASSERT ((pcl::graph::PointCloudGraphConcept<Graph>));
+
+  typedef typename point_cloud_graph_traits<Graph>::point_type PointT;
   typedef typename Graph::adjacency_iterator AdjacencyIterator;
   typedef typename Graph::vertex_descriptor VertexId;
 
-  typename pcl::PointCloud<PointT>::ConstPtr cloud = boost::get_pointcloud (graph);
+  typename pcl::PointCloud<PointT>::ConstPtr cloud = pcl::graph::point_cloud (graph);
 
   for (VertexId vertex = 0; vertex < boost::num_vertices (graph); ++vertex)
   {
@@ -85,7 +90,9 @@ pcl::graph::computeNormalsAndCurvatures (Graph& graph, bool neighborhood_1ring)
 template <typename Graph> void
 pcl::graph::computeSignedCurvatures (Graph& graph)
 {
-  typedef typename boost::vertex_point_type<Graph>::type PointT;
+  BOOST_CONCEPT_ASSERT ((pcl::graph::PointCloudGraphConcept<Graph>));
+
+  typedef typename point_cloud_graph_traits<Graph>::point_type PointT;
   typedef typename Graph::edge_iterator EdgeIterator;
   typedef typename Graph::vertex_descriptor VertexId;
 
@@ -185,6 +192,8 @@ pcl::graph::createSubgraphsFromIndices (Graph& graph,
 template <typename Graph> void
 pcl::graph::smoothen (Graph& graph, float spatial_sigma, float influence_sigma)
 {
+  BOOST_CONCEPT_ASSERT ((pcl::graph::PointCloudGraphConcept<Graph>));
+
   typedef typename Graph::edge_iterator EdgeIterator;
   typedef typename Graph::vertex_descriptor VertexId;
 

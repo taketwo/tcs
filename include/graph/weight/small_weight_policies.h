@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -113,7 +114,7 @@ namespace policy
     BOOST_MPL_HAS_XXX_TRAIT_NAMED_DEF(has_root_graph, graph_type, false)
 
     /** remove_edge_if structure is a workaround to allow edge removal from both
-      * normal graphs and subgraphs. The former should be passed to
+      * plain graphs and subgraphs. The former should be passed to
       * boost::remove_edge_if as is, whereas member field m_graph should be used
       * in place of the latter (otherwise expect segfaults). */
     template <typename Graph, typename Enable = void>

@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -37,14 +38,14 @@
 #ifndef PCL_GRAPH_GRAPH_BUILDER_H
 #define PCL_GRAPH_GRAPH_BUILDER_H
 
-#include <boost/mpl/contains.hpp>
 #include <boost/ref.hpp>
+#include <boost/mpl/contains.hpp>
+#include <boost/concept_check.hpp>
 
 #include <pcl/pcl_base.h>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
 
-#include "graph/pointcloud_adjacency_list.h"
+#include "graph/point_cloud_graph.h"
+#include "graph/point_cloud_graph_concept.h"
 
 namespace pcl
 {
@@ -52,27 +53,29 @@ namespace pcl
   namespace graph
   {
 
-    /** \brief This is an abstract base class for building a BGL-compatible
-      * graph from a point cloud.
+    /** This is an abstract base class for building a BGL-compatible graph from
+      * a point cloud.
       *
       * Building a graph involves creating vertices and establishing edges
       * between them. (A particular algorithm for doing these depends on the
       * extending class.)
       *
       * The two template parameters are the type of points in input cloud and
-      * the output graph type. The graph type should be either
-      * boost::pointcloud_adjacency_list or boost::subgraph wrapped around the
-      * former. The data contained in the points of the input cloud will be
-      * copied inside the vertices of the newly created graph. Note that the
-      * points in the input cloud and the output graph may have different types,
-      * in which case only the intersecting fields will be copied over.
+      * the output graph type. The graph type should be a model of
+      * \ref concepts::PointCloudGraphConcept (i.e. either point_cloud_graph or
+      * \c boost::subgraph wrapped around the former). The data contained in the
+      * points of the input cloud will be copied inside the vertices of the
+      * newly created graph. Note that the points in the input cloud and the
+      * output graph may have different types, in which case only the
+      * intersecting fields will be copied over.
       *
       * \author Sergey Alexandrov
-      * \ingroup graph
-      */
+      * \ingroup graph */
     template <typename PointT, typename Graph>
     class PCL_EXPORTS GraphBuilder : public pcl::PCLBase<PointT>
     {
+
+        BOOST_CONCEPT_ASSERT ((pcl::graph::PointCloudGraphConcept<Graph>));
 
       public:
 
@@ -81,15 +84,15 @@ namespace pcl
         /// Type of points in the input cloud.
         typedef PointT PointInT;
         /// Type of points in the output graph.
-        typedef typename boost::vertex_point_type<Graph>::type PointOutT;
+        typedef typename point_cloud_graph_traits<Graph>::point_type PointOutT;
 
-        typedef typename Graph::vertex_descriptor VertexId;
+        typedef typename boost::graph_traits<Graph>::vertex_descriptor VertexId;
 
         /** Build a graph based on the provided input data. */
         virtual void
         compute (Graph& graph) = 0;
 
-        /** \brief Get a mapping between points in the input cloud and the
+        /** Get a mapping between points in the input cloud and the
           * vertices in the output graph.
           *
           * \warning Some points may have no corresponding vertex. This happens

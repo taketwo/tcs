@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -48,14 +49,13 @@ namespace pcl
   namespace graph
   {
 
-    /** \brief This class builds a BGL graph representing an input dataset by
-      * using OcreetAdjacency.
+    /** This class builds a BGL graph representing an input dataset by using
+      * octree::OctreePointCloudAdjacency.
       *
       * For additional information see documentation for \ref GraphBuilder.
       *
       * \author Sergey Alexandrov
-      * \ingroup graph
-      */
+      * \ingroup graph */
     template <typename PointT, typename Graph>
     class PCL_EXPORTS OctreeAdjacencyGraphBuilder : public GraphBuilder<PointT, Graph>
     {
@@ -75,19 +75,18 @@ namespace pcl
         typedef pcl::octree::OctreePointCloudAdjacency<PointT, OctreeAdjacencyContainer> OctreeAdjacency;
         typedef typename OctreeAdjacency::Ptr OctreeAdjacencyPtr;
 
-        /** \brief Constructor.
+        /** Constructor.
           *
           * \param[in] voxel_resolution resolution of the adjacency octree
           * \param[in] with_transform_function controls whether the octree
-          * should use a point transform function (see
-          * OctreePointCloudAdjacency::setTransformFunction) */
+          * should use a point transform function (see \ref
+          * octree::OctreePointCloudAdjacency::setTransformFunction) */
         OctreeAdjacencyGraphBuilder (float voxel_resolution, bool with_transform_function = false)
         : voxel_resolution_ (voxel_resolution)
         , with_transform_function_ (with_transform_function)
         {
         }
 
-        /** Build a graph based on the provided input data. */
         virtual void
         compute (Graph& graph);
 
@@ -117,10 +116,10 @@ namespace pcl
         static void
         transformFunction (PointT& p);
 
-        /** Adjacency octree that will be used to voxelize the input dataset. */
+        /// Adjacency octree that will be used to voxelize the input dataset.
         OctreeAdjacencyPtr octree_adjacency_;
 
-        /** Voxel resolution for adjacency octree. */
+        /// Voxel resolution for adjacency octree
         float voxel_resolution_;
 
         bool with_transform_function_;

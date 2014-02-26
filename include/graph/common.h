@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -39,7 +40,7 @@
 
 #include <boost/ref.hpp>
 
-#include "graph/pointcloud_adjacency_list.h"
+#include <pcl/PointIndices.h>
 
 namespace pcl
 {
@@ -47,19 +48,20 @@ namespace pcl
   namespace graph
   {
 
-    /** \brief Compute normals and curvatures for all vertices in a graph.
+    /** Compute normals and curvatures for all vertices in a graph.
       *
       * For each vertex the function finds its 1- or 2-ring neighbors and uses
       * pcl::computePointNormal() to calculate normal and curvature. It also
       * flips the calculated normal towards 0,0,0 viewpoint.
+      *
+      * \c Graph has to be a model of concepts::PointCloudGraphConcept.
       *
       * \param[in] neighborhood_1ring flag which controls whether 1- or 2- ring
       * neighborhood is used. Default is 2-ring, which is slower, but produces
       * smoother normals.
       *
       * \author Sergey Alexandrov
-      * \ingroup graph
-      */
+      * \ingroup graph */
     template <typename Graph> void
     computeNormalsAndCurvatures (Graph& graph, bool neighborhood_1ring = false);
 
@@ -72,15 +74,16 @@ namespace pcl
       *
       * TODO: add the formula.
       *
+      * \c Graph has to be a model of concepts::PointCloudGraphConcept.
+      *
       * \author Sergey Alexandrov
-      * \ingroup graph
-      */
+      * \ingroup graph */
     template <typename Graph> void
     computeSignedCurvatures (Graph& graph);
 
 
-    /** \brief Find connected components in a graph and create a subgraph for
-      * each of them.
+    /** Find connected components in a graph and create a subgraph for each of
+      * them.
       *
       * Each created subgraph is filled with the vertices that belong to the
       * corresponding connected component.
@@ -106,8 +109,8 @@ namespace pcl
                                             std::vector<boost::reference_wrapper<Graph> >& subgraphs);
 
 
-    /** \brief Create two subgraphs of a given graph, one containing the points
-      * with the given indices, and the other containing the remaining points.
+    /** Create two subgraphs of a given graph, one containing the points with
+      * the given indices, and the other containing the remaining points.
       *
       * In order to allow creation of subgraphs, the graph type should be an
       * instantiation of boost::subgraph template. Note that the graph is
@@ -123,16 +126,15 @@ namespace pcl
       * \param[out] subgraphs a vector of references to created subgraps
       *
       * \author Sergey Alexandrov
-      * \ingroup graph
-      * */
+      * \ingroup graph */
     template <typename Graph> void
     createSubgraphsFromIndices (Graph& graph,
                                 const pcl::PointIndices& indices,
                                 std::vector<boost::reference_wrapper<Graph> >& subgraphs);
 
 
-    /** \brief Create subgraphs of a given graph containing vertices from a
-      * given indices vector.
+    /** Create subgraphs of a given graph containing vertices from a given
+      * indices vector.
       *
       * For each set of indices in the \p indices vector this function will
       * create a subgraph containing corresponding vertices of the parent
@@ -153,21 +155,19 @@ namespace pcl
       * \param[out] subgraphs a vector of references to created subgraps
       *
       * \author Sergey Alexandrov
-      * \ingroup graph
-      * */
+      * \ingroup graph */
     template <typename Graph> void
     createSubgraphsFromIndices (Graph& graph,
                                 const std::vector<pcl::PointIndices>& indices,
                                 std::vector<boost::reference_wrapper<Graph> >& subgraphs);
 
 
-    /** \brief Apply bilateral filtering to a given point cloud graph.
+    /** Apply bilateral filtering to a given point cloud graph.
       *
-      * TODO: add detailed documentation and tests.
+      * \c Graph has to be a model of concepts::PointCloudGraphConcept.
       *
       * \author Sergey Alexandrov
-      * \ingroup graph
-      * */
+      * \ingroup graph */
     template <typename Graph> void
     smoothen (Graph& graph, float spatial_sigma, float influence_sigma);
 

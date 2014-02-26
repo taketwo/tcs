@@ -11,7 +11,7 @@
 #include "as_range.h"
 #include "tviewer/color.h"
 
-#include "graph/pointcloud_adjacency_list.h"
+#include "graph/point_cloud_graph.h"
 
 template <typename GraphT>
 class GraphVisualizer
@@ -65,7 +65,7 @@ class GraphVisualizer
     getVerticesNormalsCloud ()
     {
       NormalCloudT::Ptr cloud (new NormalCloudT);
-      copyPointCloud (*boost::get_pointcloud (graph_), *cloud);
+      copyPointCloud (*pcl::graph::point_cloud (graph_), *pcl::graph::indices (graph_), *cloud);
       return cloud;
     }
 
@@ -154,7 +154,7 @@ class GraphVisualizer
     constructVerticesCloud (ColorMode mode)
     {
       PointCloudT::Ptr cloud (new PointCloudT);
-      copyPointCloud (*boost::get_pointcloud (graph_), *cloud);
+      copyPointCloud (*pcl::graph::point_cloud (graph_), *pcl::graph::indices (graph_), *cloud);
       if (mode == MODE_CURVATURE)
         for (const auto& s : as_range (boost::vertices (graph_)))
           // The curvature produced by PCAG is signed.
@@ -169,7 +169,7 @@ class GraphVisualizer
     {
       assert (static_cast<int> (boost::num_vertices (graph_)) == colors.size ());
       PointCloudT::Ptr cloud (new PointCloudT);
-      copyPointCloud (*boost::get_pointcloud (graph_), *cloud);
+      copyPointCloud (*pcl::graph::point_cloud (graph_), *pcl::graph::indices (graph_), *cloud);
       auto scale = getRangeScalingForVector (colors);
       for (const auto& s : as_range (boost::vertices (graph_)))
       {
@@ -182,7 +182,7 @@ class GraphVisualizer
     constructVerticesCloud (VertexColorMap colors, ColorMode mode)
     {
       PointCloudT::Ptr cloud (new PointCloudT);
-      copyPointCloud (*boost::get_pointcloud (graph_), *cloud);
+      copyPointCloud (*pcl::graph::point_cloud (graph_), *pcl::graph::indices (graph_), *cloud);
       std::map<uint32_t, tviewer::Color> colormap;
       const std::vector<tviewer::Color> COLORS = { 0x9E9E9E, 0x29CC00, 0x008FCC, 0xA300CC, 0xCC3D00, 0xFFDD00, 0x63E6E6, 0xA5E663, 0x9E2B2B };
       size_t c = 0;
@@ -226,12 +226,13 @@ class GraphVisualizer
       for (const auto& s : as_range (boost::edges (graph_)))
       {
         auto v = boost::get (boost::edge_weight_t (), graph_, s);
-        v = std::log (v);
+        //v = std::log (v);
         if (v > max) max = v;
         if (v < min) min = v;
       }
       if (max != min)
-        return [min, max] (float v) { return (std::log (v) - min) / (max - min); };
+        //return [min, max] (float v) { return (std::log (v) - min) / (max - min); };
+        return [min, max] (float v) { return (v - min) / (max - min); };
       else
         return [] (float v) { return 1.0; };
     }

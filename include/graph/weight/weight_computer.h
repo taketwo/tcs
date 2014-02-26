@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -68,6 +69,7 @@ struct term_of
   typedef Term type;
 };
 
+/** A class that provides means to compute edge weights for a point cloud graph. */
 template <typename Point,
           typename Terms,
           typename WeightingFunction,

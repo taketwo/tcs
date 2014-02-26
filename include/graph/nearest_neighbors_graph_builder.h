@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -47,8 +48,8 @@ namespace pcl
   namespace graph
   {
 
-    /** \brief This class builds a BGL graph representing an input dataset by
-      * using nearest neighbor search.
+    /** This class builds a BGL graph representing an input dataset by using
+      * nearest neighbor search.
       *
       * The points from the input cloud become vertices and the edges are
       * established between each point and its neighbors (as found by the search
@@ -59,8 +60,7 @@ namespace pcl
       * For additional information see documentation for \ref GraphBuilder.
       *
       * \author Sergey Alexandrov
-      * \ingroup graph
-      */
+      * \ingroup graph */
     template <typename PointT, typename Graph>
     class PCL_EXPORTS NearestNeighborsGraphBuilder : public GraphBuilder<PointT, Graph>
     {
@@ -81,12 +81,15 @@ namespace pcl
         typedef pcl::search::Search<PointOutT> Search;
         typedef typename Search::Ptr SearchPtr;
 
+        /** Constructor.
+          *
+          * \param[in] num_neighbors number of neighbors to find when building
+          * a graph (default: \c 14)*/
         NearestNeighborsGraphBuilder (size_t num_neighbors = 14)
         : num_neighbors_ (num_neighbors)
         {
         }
 
-        /** Build a graph based on the provided input data. */
         virtual void
         compute (Graph& graph);
 
@@ -117,11 +120,11 @@ namespace pcl
 
       private:
 
-        /** The search method that will be used for finding K nearest neighbors
-          * when building a graph. */
+        /// The search method that will be used for finding K nearest neighbors
+        /// when building a graph.
         SearchPtr search_;
 
-        /** The number of neighbors to find when building a graph. */
+        /// The number of neighbors to find when building a graph.
         size_t num_neighbors_;
 
     };

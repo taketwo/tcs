@@ -20,6 +20,10 @@ add_definitions(-Wno-unknown-pragmas)
 add_definitions(-Wno-deprecated)
 add_definitions(-fpermissive)
 
+# Documentation
+set(DOXYFILE_LATEX false)
+include(UseDoxygen)
+
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
@@ -73,3 +77,6 @@ target_link_libraries(segmentation_evaluation
   ${TVIEWER_LIBRARIES}
   hungarian
 )
+
+enable_testing()
+add_subdirectory(test)

@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -37,18 +38,18 @@
 #ifndef PCL_SEGMENTATION_RANDOM_WALKER_SEGMENTATION_H
 #define PCL_SEGMENTATION_RANDOM_WALKER_SEGMENTATION_H
 
+#include <boost/ref.hpp>
+#include <boost/bimap.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/map.hpp>
-#include <boost/bimap.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
-#include <boost/ref.hpp>
 
 #include <pcl/pcl_base.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/search/search.h>
 
-#include "graph/pointcloud_adjacency_list.h"
+#include "graph/point_cloud_graph.h"
 #include "graph/octree_adjacency_graph_builder.h"
 
 namespace pcl
@@ -57,6 +58,30 @@ namespace pcl
   namespace segmentation
   {
 
+    /** Multilabel semi-automatic point cloud segmentation using random walks.
+      *
+      * This is based on the algorithm described in "Random Walks for Image
+      * Segmentation" by Leo Grady. An implementation of this algorithm suitable
+      * for generic graphs (not necessarily with 3D points as vertices) is
+      * available in \ref pcl::segmentation::randomWalks().
+      *
+      * This class makes a bridge between input point cloud and the graph-based
+      * back-end algorithm. An average user only needs to supply an input point
+      * cloud and a set of seeds. The class will take care of converting the
+      * input into a weighted graph, running random walker segmentation, and
+      * interpreting its output to form point cloud clusters.
+      *
+      * The default parameters that are used to construct the graph are adequate
+      * for table-top scenes captured by a 3D sensor like Kinect.
+      *
+      * An advanced user may provide a pre-build graph rather than a point
+      * cloud if the defaults does not suit for the data at hand. See the tools
+      * available in the \ref graph "pcl_graph" module for construction of
+      * graphs from point clouds (pcl::graph::GraphBuilder) and computing edge
+      * weights (pcl::graph::weight::weight_computer).
+      *
+      * \author Sergey Alexandrov
+      * \ingroup segmentation */
     template <typename PointT>
     class PCL_EXPORTS RandomWalkerSegmentation : public pcl::PCLBase<PointT>
     {
@@ -99,7 +124,7 @@ namespace pcl
 
         /* Public typedefs related with graph. */
         typedef boost::subgraph
-                <boost::pointcloud_adjacency_list
+                <pcl::graph::point_cloud_graph
                 <PointWithNormal,
                  boost::vecS,
                  boost::undirectedS,
@@ -115,80 +140,70 @@ namespace pcl
         typedef boost::shared_ptr<const Graph>                             GraphConstPtr;
         typedef boost::reference_wrapper<Graph>                            GraphRef;
 
-        RandomWalkerSegmentation (bool compute_potentials = false);
 
+        /** Construct a random walker segmentation object.
+          *
+          * Random walker segmentation has a by-product: a matrix of
+          * vertex/seed potentials. This is of no interest for a general user,
+          * however those who are actually interested in these data may access
+          * it after running segmentation with getPotentials(). Assembly and
+          * storage if this matrix might be expensive if the graph is big, thus
+          * this feature is disable by default and may be re-enabled on demand
+          * with the \a store_potentials parameter.
+          *
+          * \param[in] store_potentials controls whether the vertex potentials
+          * matrix should be assembled and stored during segmentation */
+        RandomWalkerSegmentation (bool store_potentials = false);
+
+
+        /** Destructor. */
         virtual
         ~RandomWalkerSegmentation ();
 
 
-/**********************************************************************
- *                     Functions to provide input                     *
- *********************************************************************/
-
-
-        /** Provide a pointer to the input dataset. */
+        /** Provide a pointer to the input point cloud.
+          *
+          * The graph representation for the input data will be computed using
+          * the default graph builder and edge weight computer. */
         virtual void
         setInputCloud (const PointCloudConstPtr &cloud);
 
 
-        /******************************
-         *  Provide graph explicitly  *
-         ******************************/
-
-
-        /** Provide graph explicitly. */
+        /** Provide a pointer to the input point cloud graph. */
         void
         setInputGraph (const GraphPtr& graph);
 
 
-        /*******************
-         *  Provide seeds  *
-         *******************/
-
-
+        /** Provide a pointer to the cloud of seeds for random walker.
+          *
+          * A seed is a point with XYZ coordinates and a label. Seeds need not
+          * exactly coincide with any point in the input data. A kD-tree will
+          * be used to find the closest neighbor for each seed.
+          *
+          * There may be multiple seeds with the same label, they will be
+          * considered to belong to the same cluster.
+          *
+          * \warn Label \c 0xFFFFFFFF is not allowed! */
         void
         setSeeds (const pcl::PointCloud<PointXYZL>::ConstPtr& seeds);
-        //
-        // This version allows to input approximate seeds, also with
-        // multiple seed points per label. Internally this will have
-        // to do a lookup for closest points.
-        // Should it preserve exactly the same labels in the output?
-        // If yes then make sure that it does not have 0 labels.
-        // Note that label 0xFFFFFFFF is not allowed
 
 
-        // void setSeeds (const std::vector<PointIndices>& seed_indices)
-        //
-        // This version allows to input exact seeds (referencing them
-        // by their indices). Also with multiple seed points per label.
+        /** Perform random walker segmentation.
+          *
+          * The clusters in the output vector will be in the order of inceasing
+          * label of their corresponding seeds.
+          *
+          * \note During the segmentation the `vertex_color_t` property of the
+          * graph is modified to reflect the computed segmentation.
+          *
+          * \param[out] clusters the resultant set of indices, indexing the
+          * points of the input cloud or input graph that correspond to the
+          * clusters */
+        void
+        segment (std::vector<pcl::PointIndices>& clusters);
 
 
-        // void setSeeds (const PointIndices& seed_indices)
-        //
-        // This version only allows one seed per label, but might be
-        // simpler to use.
-
-
-/*********************************************************************
- *                              Getters                              *
- *********************************************************************/
-
-
-        /** \brief Returns the graph that was built (or provided with
-          * setInputGraph()) to perform random walker segmentation. */
-        inline GraphConstPtr
-        getGraph () const
-        {
-          return (graph_);
-        }
-
-
-/*********************************************************************
- *                   Functions to run segmentation                   *
- *********************************************************************/
-
-
-        /** \brief Build a graph based on the input dataset.
+        /** Build a graph based on the input dataset.
           *
           * This function constructs a graph and assigns edge weights. The user
           * has to call this function explicitly only if he needs to access the
@@ -214,38 +229,34 @@ namespace pcl
         preComputeGraph ();
 
 
-        /** \brief Perform random walker segmentation.
+        /** Returns the graph that was built (or provided with setInputGraph())
+          * to perform random walker segmentation. */
+        inline GraphConstPtr
+        getGraph () const
+        {
+          return (graph_);
+        }
+
+
+        /** Get vertex potentials computed during random walker segmentation.
           *
-          * \param[out] clusters the resultant set of indices, indexing the
-          * points of the input cloud that correspond to the clusters */
-        void
-        segment (std::vector<pcl::PointIndices>& clusters);
-
-
-/*********************************************************************
- *                      Functions to get output                      *
- *********************************************************************/
-
-
-        //pcl::PointCloud<pcl::PointXYZL>::Ptr
-        //getLabeledCloud () const;
-        //
-        // Get the same cloud as was input, but with labels. If the
-        // seeds were provided with labels, then the labels should match.
-        // Otherwise just label from 1 to num_labels. (Reasonable to
-        // reserve 0 for unlabeled points).
-
-
-        // typename PointCloud<PointXYZRGB>::Ptr getColoredCloud ();
-        //
-        // Same as before, but just use random colors insetad of labels.
-
+          * This returns a const reference to a matrix of potentials formed
+          * during segmentation and stored inside this object.
+          *
+          * \note Matrix assembly should be enabled during construction of the
+          * segmentation object. If it was no enabled then zero-sized matrix
+          * will be returned. */
         const Eigen::MatrixXf&
         getPotentials () const;
 
       private:
 
-        typedef typename boost::property_map<Graph, boost::vertex_color_t >::type VertexColorMap;
+        typedef
+          typename boost::property_map<
+            Graph
+          , boost::vertex_color_t
+          >::type
+        VertexColorMap;
 
         bool input_as_cloud_;
 
@@ -260,7 +271,7 @@ namespace pcl
         /// identifiers (which are used in random walker segmentation).
         boost::bimap<uint32_t, uint32_t> label_color_bimap_;
 
-        bool compute_potentials_;
+        bool store_potentials_;
         Eigen::MatrixXf potentials_;
 
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW

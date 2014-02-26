@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -40,6 +41,7 @@
 #include <boost/make_shared.hpp>
 
 #include <pcl/search/kdtree.h>
+#include <pcl/kdtree/io.h>
 
 #include "random_walker.h"
 #include "random_walker_segmentation.h"
@@ -49,10 +51,10 @@
 #include "measure_runtime.h"
 
 template <typename PointT>
-pcl::segmentation::RandomWalkerSegmentation<PointT>::RandomWalkerSegmentation (bool compute_potentials)
+pcl::segmentation::RandomWalkerSegmentation<PointT>::RandomWalkerSegmentation (bool store_potentials)
 : input_as_cloud_ (true)
 , graph_builder_ (0.006f, true)
-, compute_potentials_ (compute_potentials)
+, store_potentials_ (store_potentials)
 {
 }
 
@@ -96,30 +98,6 @@ pcl::segmentation::RandomWalkerSegmentation<PointT>::setSeeds (const pcl::PointC
   {
     label_color_bimap_.insert (boost::bimap<uint32_t, uint32_t>::value_type (*iter, label_color_bimap_.size ()));
   }
-}
-
-namespace pcl
-{
-
-// TODO: this function is there temporary until PR gets merged
-template <typename Point1T, typename Point2T> void
-getApproximateIndices (
-    const typename pcl::PointCloud<Point1T>::ConstPtr &cloud_in,
-    const typename pcl::PointCloud<Point2T>::ConstPtr &cloud_ref,
-    std::vector<int> &indices)
-{
-  pcl::KdTreeFLANN<Point2T> tree;
-  tree.setInputCloud (cloud_ref);
-  std::vector<int> nn_idx (1);
-  std::vector<float> nn_dists (1);
-  indices.resize (cloud_in->points.size ());
-  for (size_t i = 0; i < cloud_in->points.size (); ++i)
-  {
-    tree.nearestKSearchT (cloud_in->at (i), 1, nn_idx, nn_dists);
-    indices[i] = nn_idx[0];
-  }
-}
-
 }
 
 template <typename PointT> void
@@ -175,7 +153,7 @@ pcl::segmentation::RandomWalkerSegmentation<PointT>::segment (std::vector<PointI
 
   // Find seeds
   std::vector<int> v;
-  pcl::getApproximateIndices<PointXYZL, PointWithNormal> (seeds_, boost::get_pointcloud (*graph_), v);
+  pcl::getApproximateIndices<PointXYZL, PointWithNormal> (seeds_, pcl::graph::point_cloud (*graph_), v);
   for (size_t i = 0; i < seeds_->size (); ++i)
     colors[v[i]] = label_color_bimap_.left.at (seeds_->at (i).label);
 
@@ -183,7 +161,7 @@ pcl::segmentation::RandomWalkerSegmentation<PointT>::segment (std::vector<PointI
 
   MEASURE_RUNTIME ("Random walker segmentation... ", {
 
-  if (compute_potentials_)
+  if (store_potentials_)
     // One row per vertex, one column per label (excluding "unlabeled")
     potentials_ = Eigen::MatrixXf::Zero (boost::num_vertices (*graph_), label_color_bimap_.size () - 1);
   else
@@ -194,7 +172,7 @@ pcl::segmentation::RandomWalkerSegmentation<PointT>::segment (std::vector<PointI
   {
     Graph& g = graph_components_.at (i).get ();
     bool success;
-    if (compute_potentials_)
+    if (store_potentials_)
     {
       Eigen::MatrixXf p;
       ColorColumnMap colors_to_columns_map;
@@ -255,7 +233,7 @@ pcl::segmentation::RandomWalkerSegmentation<PointT>::segment (std::vector<PointI
 template <typename PointT> const Eigen::MatrixXf&
 pcl::segmentation::RandomWalkerSegmentation<PointT>::getPotentials () const
 {
-  if (!compute_potentials_)
+  if (!store_potentials_)
   {
     PCL_WARN ("[pcl::segmentation::RandomWalkerSegmentation::getPotentials] "
               "Potential computation was disabeled at construction time, returning a zero matrix.");

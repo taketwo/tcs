@@ -130,7 +130,7 @@ public:
 
   Factory (const std::string& name) : name_ (name) { };
 
-  const std::string
+  virtual const std::string
   getUsage ()
   {
     std::stringstream usage;
@@ -141,7 +141,7 @@ public:
     return usage.str ();
   }
 
-  void
+  virtual void
   printValues ()
   {
     pcl::console::print_info ("%s\n", name_.c_str ());
