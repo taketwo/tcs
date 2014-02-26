@@ -92,3 +92,17 @@ If you saved produced segmentation you may compare it with the ground truth
 The program will print the number of mis-labeled points to the console and
 visualize them. As usual, you may press `h` to see available visualization
 objects.
+
+Documentation
+=============
+
+Generate the project documentation with the following command:
+
+    make doc
+    
+Unti tests
+==========
+
+Compile and run unit tests with the following command:
+
+    make tests
