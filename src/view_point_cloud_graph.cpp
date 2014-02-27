@@ -66,38 +66,34 @@ int main (int argc, char ** argv)
   typedef GraphVisualizer<Graph> GraphVisualizer;
   GraphVisualizer gv (graph);
 
-  viewer->add<PointCloudObject<pcl::PointXYZRGBA>> (
-      "vertices",
-      "graph vertices",
-      "v",
-      gv.getVerticesCloudColorsNatural (),
-      6,
-      0.95
+  viewer->add
+  ( CreatePointCloudObject<pcl::PointXYZRGBA> ("vertices", "v")
+  . description                               ("Graph vertices")
+  . pointSize                                 (6)
+  . visibility                                (0.95)
+  . data                                      (gv.getVerticesCloudColorsNatural ())
   );
 
-  viewer->add<PointCloudObject<pcl::PointXYZRGBA>> (
-      "curvature",
-      "vertex curvature",
-      "C",
-      gv.getVerticesCloudColorsCurvature (),
-      6,
-      0.95
+  viewer->add
+  ( CreatePointCloudObject<pcl::PointXYZRGBA> ("curvature", "C")
+  . description                               ("Vertex curvature")
+  . pointSize                                 (6)
+  . visibility                                (0.95)
+  . data                                      (gv.getVerticesCloudColorsCurvature ())
   );
 
-  viewer->add<NormalCloudObject> (
-      "normals",
-      "vertex normals",
-      "n",
-      gv.getVerticesNormalsCloud (),
-      1,
-      0.01
+  viewer->add
+  ( CreateNormalCloudObject ("normals", "n")
+  . description             ("Vertex normals")
+  . level                   (1)
+  . scale                   (0.01)
+  . data                    (gv.getVerticesNormalsCloud ())
   );
 
-  viewer->add<PolyDataObject> (
-      "edges",
-      "adjacency edges",
-      "a",
-      gv.getEdgesPolyData ()
+  viewer->add
+  ( CreatePolyDataObject ("edges", "a")
+  . description          ("Adjacency edges")
+  . data                 (gv.getEdgesPolyData ())
   );
 
   viewer->show ("edges");

@@ -111,13 +111,12 @@ int main (int argc, char ** argv)
   using namespace tviewer;
   auto viewer = create (argc, argv);
 
-  viewer->add<PointCloudObject<PointT>> (
-      "input",
-      "input point cloud",
-      "i",
-      cloud,
-      4,
-      0.95
+  viewer->add
+  ( CreatePointCloudObject<PointT> ("input", "i")
+  . description                    ("Input point cloud")
+  . data                           (cloud)
+  . pointSize                      (4)
+  . visibility                     (0.95)
   );
 
 
@@ -151,38 +150,34 @@ int main (int argc, char ** argv)
   typedef GraphVisualizer<Graph> GraphVisualizer;
   GraphVisualizer gv (graph);
 
-  viewer->add<PointCloudObject<pcl::PointXYZRGBA>> (
-      "vertices",
-      "graph vertices",
-      "v",
-      gv.getVerticesCloudColorsNatural (),
-      6,
-      0.95
+  viewer->add
+  ( CreatePointCloudObject<pcl::PointXYZRGBA> ("vertices", "v")
+  . description                               ("Graph vertices")
+  . pointSize                                 (6)
+  . visibility                                (0.95)
+  . data                                      (gv.getVerticesCloudColorsNatural ())
   );
 
-  viewer->add<PointCloudObject<pcl::PointXYZRGBA>> (
-      "curvature",
-      "vertex curvature",
-      "C",
-      gv.getVerticesCloudColorsCurvature (),
-      6,
-      0.95
+  viewer->add
+  ( CreatePointCloudObject<pcl::PointXYZRGBA> ("curvature", "C")
+  . description                               ("Vertex curvature")
+  . pointSize                                 (6)
+  . visibility                                (0.95)
+  . data                                      (gv.getVerticesCloudColorsCurvature ())
   );
 
-  viewer->add<NormalCloudObject> (
-      "normals",
-      "vertex normals",
-      "n",
-      gv.getVerticesNormalsCloud (),
-      1,
-      0.01
+  viewer->add
+  ( CreateNormalCloudObject ("normals", "n")
+  . description             ("Vertex normals")
+  . level                   (1)
+  . scale                   (0.01)
+  . data                    (gv.getVerticesNormalsCloud ())
   );
 
-  viewer->add<PolyDataObject> (
-      "edges",
-      "adjacency edges",
-      "a",
-      gv.getEdgesPolyData ()
+  viewer->add
+  ( CreatePolyDataObject ("edges", "a")
+  . description          ("Adjacency edges")
+  . data                 (gv.getEdgesPolyData ())
   );
 
   viewer->show ("vertices");
@@ -207,14 +202,13 @@ int main (int argc, char ** argv)
       pcl::io::savePCDFile (seeds_save_filename, *seeds_cloud);
   }
 
-  viewer->add<PointCloudObject<PointT>> (
-      "seeds",
-      "random walker seeds",
-      "S",
-      seeds::createColoredCloudFromSeeds (*seeds_cloud),
-      14,
-      0.65,
-      0xFF0000
+  viewer->add
+  ( CreatePointCloudObject<PointT> ("seeds", "S")
+  . description                    ("Random walker seeds")
+  . pointSize                      (14)
+  . visibility                     (0.65)
+  . color                          (0xFF0000)
+  . data                           (seeds::createColoredCloudFromSeeds (*seeds_cloud))
   );
 
 
@@ -231,19 +225,17 @@ int main (int argc, char ** argv)
 
   rws.segment (clusters);
 
-  viewer->add<PointCloudWithColorShufflingObject> (
-      "clusters",
-      "object clusters",
-      "c",
-      option_fixed_colors ?
-        gv.getVerticesCloudColorsFromMapFixed ()
-      :
-        gv.getVerticesCloudColorsFromMapRandom (),
-      3,
-      1.0
+  viewer->add
+  ( CreatePointCloudWithColorShufflingObject ("clusters", "c")
+  . description                              ("Object clusters")
+  . pointSize                                (3)
+  . visibility                               (1.0)
+  . data                                     (option_fixed_colors
+                                              ? gv.getVerticesCloudColorsFromMapFixed ()
+                                              : gv.getVerticesCloudColorsFromMapRandom ())
   );
 
-  viewer->updateAll ();
+  viewer->update ();
   viewer->hide ("vertices");
 
   if (mode_potential)
@@ -251,13 +243,12 @@ int main (int argc, char ** argv)
     size_t index = 0;
     Eigen::VectorXf potential = rws.getPotentials ().col (0);
 
-    viewer->add<PointCloudObject<PointT>> (
-        "potential",
-        "random walker potentials",
-        "p",
-        std::bind (&GraphVisualizer::getVerticesCloudColorsFromVector, gv, std::cref (potential)),
-        3,
-        1.0
+    viewer->add
+    ( CreatePointCloudObject<PointT> ("potential", "p")
+    . description                    ("Random walker potentials")
+    . pointSize                      (3)
+    . visibility                     (1.0)
+    . onUpdate                       ([&]{ return gv.getVerticesCloudColorsFromVector (potential); })
     );
 
     viewer->update ("potential");

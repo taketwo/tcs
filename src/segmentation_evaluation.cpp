@@ -42,29 +42,26 @@ public:
     {
       auto viewer = create ();
       pcl::console::print_error ("Erroneus points: %i (%.2f%%)\n", error, p);
-      viewer->add<PointCloudObject<pcl::PointXYZRGBA>> (
-          "incorrect",
-          "incorrectly segmented points",
-          "i",
-          getCloud (MODE_BY_ERROR_FLAG),
-          2,
-          0.95
+      viewer->add
+      ( CreatePointCloudObject<pcl::PointXYZRGBA> ("incorrect", "i")
+      . description                               ("Incorrectly segmented points")
+      . data                                      (getCloud (MODE_BY_ERROR_FLAG))
+      . pointSize                                 (2)
+      . visibility                                (0.95)
       );
-      viewer->add<PointCloudWithColorShufflingObject> (
-          "groundtruth",
-          "groundtruth labeling",
-          "t",
-          getCloud (MODE_BY_GROUNDTRUTH_LABEL),
-          2,
-          0.95
+      viewer->add
+      ( CreatePointCloudWithColorShufflingObject ("groundtruth", "t")
+      . description                              ("Groundtruth labeling")
+      . data                                     (getCloud (MODE_BY_GROUNDTRUTH_LABEL))
+      . pointSize                                (2)
+      . visibility                               (0.95)
       );
-      viewer->add<PointCloudWithColorShufflingObject> (
-          "segmentation",
-          "segmentation labeling",
-          "s",
-          getCloud (MODE_BY_SEGMENTATION_LABEL),
-          2,
-          0.95
+      viewer->add
+      ( CreatePointCloudWithColorShufflingObject ("segmentation", "s")
+      . description                              ("Segmentation labeling")
+      . data                                     (getCloud (MODE_BY_SEGMENTATION_LABEL))
+      . pointSize                                (2)
+      . visibility                               (0.95)
       );
       viewer->show ("incorrect");
       viewer->run ();
