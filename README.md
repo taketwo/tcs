@@ -100,6 +100,9 @@ Documentation
 Generate the project documentation with the following command:
 
     make doc
+    
+Alternatively, the documentation could be accessed online at the
+[GitHub pages](http://taketwo.github.io/tcs/index.html) of this repository.
 
 Unit tests
 ==========
