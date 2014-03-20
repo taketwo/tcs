@@ -20,6 +20,10 @@ typedef typename PointCloudT::Ptr PointCloudTPtr;
 typedef typename PointCloudWithNormalT::Ptr PointCloudWithNormalTPtr;
 typedef typename NormalCloudT::Ptr NormalCloudTPtr;
 
+#ifndef WC_SMALL_WEIGHT_POLICY
+  #define WC_SMALL_WEIGHT_POLICY policy::coerce
+#endif
+
 namespace graph_with_normals
 {
 
@@ -66,7 +70,7 @@ typedef weight_computer<PointWithNormalT,
                         , tag::normalized<tag::color, tag::graph>
                         >,
                         pcl::graph::weight::function::gaussian,
-                        policy::coerce
+                        WC_SMALL_WEIGHT_POLICY
                         > WeightComputer;
 
 }
@@ -83,7 +87,7 @@ typedef weight_computer<PointWithNormalT,
                         , tag::normalized<tag::color, tag::graph>
                         >,
                         pcl::graph::weight::function::gaussian,
-                        policy::coerce
+                        WC_SMALL_WEIGHT_POLICY
                         > WeightComputer;
 
 }

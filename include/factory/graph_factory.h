@@ -20,7 +20,7 @@ class GraphFactory : public Factory
 
 public:
 
-  typedef std::shared_ptr<Graph> GraphPtr;
+  typedef boost::shared_ptr<Graph> GraphPtr;
   typedef boost::reference_wrapper<Graph> GraphRef;
   typedef typename pcl::PointCloud<Point>::ConstPtr PointCloudConstPtr;
 
@@ -39,8 +39,8 @@ public:
   getUsage ()
   {
     std::stringstream usage;
-    usage << Factory::getUsage ();
-    usage << gb_factory_.getUsage ();
+    usage << Factory::getUsage () << std::endl;
+    usage << gb_factory_.getUsage () << std::endl;
     usage << wc_factory_.getUsage ();
     return usage.str ();
   }

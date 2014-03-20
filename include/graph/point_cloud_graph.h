@@ -51,7 +51,7 @@
   *
   * **pcl_graph** is an experimental library that aims to provide a common toolbox to aid development of graph-based 3D
   * processing algorithms within the PCL framework. The library has a strong influence from
-  * [Boost Graph Library][BGLTOCS] and relies on the concepts, classes, and algorithms found there.
+  * [Boost Graph Library][BGLTOC] and relies on the concepts, classes, and algorithms found there.
   *
   * At the heart of the library lies the pcl::graph::point_cloud_graph class, which may be considered to be a blend of a
   * PCL point cloud and [boost::adjacency_list][AdjacencyList] (the most common graph representation in BGL). As such,
@@ -62,12 +62,12 @@
   * to create the vertex and edge sets based on an input point cloud. This may be accomplished with either
   * pcl::graph::OctreeAdjacencyGraphBuilder or pcl::graph::NearestNeighborsGraphBuilder. The second step is to assign
   * weights to the edges of the newly constructed graph. The pcl::graph::weight::weight_computer class is a flexible and
-  * effecient, yet very experimental tool that may be used to achieve this goal.
+  * efficient (though very experimental) tool that may be used to achieve this goal.
   *
   * Finally, the library provides a number of random functions (e.g. pcl::graph::createSubgraphsFromIndices() or
   * pcl::graph::computeNormalsAndCurvatures()) that may be helpful when dealing with point cloud graphs.
   *
-  * [BGLTOCS]: http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/table_of_contents.html
+  * [BGLTOC]: http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/table_of_contents.html
   * [AdjacencyList]: http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/adjacency_list.html
   *
   * \section secGraphRequirements Requirements
@@ -138,7 +138,7 @@
   * graph[1].x = 14;
   * // The graph shares data with the original point cloud, so modifying a bundled point
   * // changes the corresponding point in the original cloud
-  * assert (14 = cloud->points[1].x);
+  * assert (14 == cloud->points[1].x);
   * ~~~
   *
   * The internal point cloud may be accessed using `boost::point_cloud (Graph& g)`:
@@ -202,15 +202,43 @@
   * ## Compatibility with [boost::subgraph][Subgraph] ##
   *
   *
-  * The problem with `boost::subgraph` is that it is a template class that is *wrapped around* a graph class rather than
-  * a class that *inherits* from a graph class. Therefore if we want it to be possible to use point_cloud_graph either
-  * way (plain or wrapped by `boost::subgraph`), we have to limit ourselves to the interface exposed by
-  * `boost::subgraph`. In particular, we can not have a PCL point cloud-based constructor for point_cloud_graph because
-  * it will not be available in `boost::subgraph<point_cloud_graph>`. However, the ability to construct a
-  * point_cloud_graph from an existing PCL point cloud is an essential feature. We noted that `boost::subgraph` has a
-  * GraphProperty-based constructor that could be re-used as a desider PCL point cloud-base constructor if we alias
-  * GraphProperty to PCL point cloud. Thus GraphProperty is used to support internal mechanics of point_cloud_graph and
-  * is no longer available to the user.
+  * `boost::subgraph` provides a convenient mechanism to keep track of a graph and its induced subgraphs. Two issues
+  * have been accounted for in order to allow smooth inter-operation between point_cloud_graph and `boost::subgraph`.
+  *
+  *
+  * ### Fixed interface ###
+  *
+  *
+  * `boost::subgraph` is a template class that is *wrapped around* a graph class rather than a class that *inherits*
+  * from a graph class. Therefore if we want it to be possible to use point_cloud_graph either way (plain or wrapped by
+  * `boost::subgraph`), we have to limit ourselves to the interface exposed by `boost::subgraph`. In particular, we can
+  * not have a PCL point cloud-based constructor for point_cloud_graph because (for apparent reasons) `boost::subgraph`
+  * does not have it. However, the ability to construct a point_cloud_graph from an existing PCL point cloud is an
+  * essential feature. We noted that `boost::subgraph` has a GraphProperty-based constructor that could be re-used as a
+  * desired PCL point cloud-based constructor if we alias GraphProperty to PCL point cloud. Thus GraphProperty is used
+  * to support internal mechanics of point_cloud_graph and is no longer available to the user.
+  *
+  *
+  * ### Lack of internal storage for points ###
+  *
+  *
+  * Recall that point_cloud_graph stores the points bundled in its vertices inside a PCL point cloud. It could be
+  * conveniently retrieved using `boost::point_cloud (Graph& g)` and then used in PCL algorithms. `boost::subgraph`,
+  * however, is designed in such a way that it stores the indices of the vertices and edges of the parent (root) graph
+  * that belong to it, but not the data associated with these vertices and edges. In other words, a hierarchy of
+  * subgraphs (each of which represents a particular subset of vertices and edges of the root graph) shares common
+  * vertex/edge data, and all these data are contained inside the root graph. Consequently, there does not exist a PCL
+  * point cloud for each subgraph, but rather a single PCL point cloud for the root graph. This raises a question as of
+  * how the `boost::point_cloud (Subgraph& g)` function should be implemented.
+  *
+  * One option is to construct a new PCL point cloud and fill it with subgraph's points. This, however, would be
+  * inconsistent with the behavior of `boost::point_cloud (Graph& g)`, which simply returns a pointer (meaning it is
+  * *O(1)* operation) that could be used to read and modify the points of the graph. Luckily, working with subsets of
+  * point clouds is such a common task in the PCL world that \ref pcl::PCLBase class (which lies at the top of the
+  * hierarchy of PCL algorithms) has a means for the user to supply an input point cloud *and* a vector of indices to
+  * which the processing should be limited to. Therefore, we decided that `boost::point_cloud (Subgraph& g)` should
+  * return the PCL point cloud of its root graph (that is, the whole set of points), and there should be an auxiliary
+  * function `boost::indices (Subgraph& g)` that returns indices of the points that belong to the subgraph.
   *
   *
   * - - -
@@ -246,7 +274,7 @@
   * [CopyConstructible](http://www.boost.org/doc/libs/1_55_0/libs/utility/CopyConstructible.html),
   * [Assignable](http://www.boost.org/doc/libs/1_55_0/libs/utility/Assignable.html)
   *
-  * Probably it could also support [Serializable][Serialization], however this option has not been explored yet.
+  * Probably it could also support [Serializable][Serialization], however this option has not been explored.
   *
   * [Serialization]: http://www.boost.org/doc/libs/1_55_0/libs/serialization/doc/index.html
   *
@@ -254,7 +282,7 @@
   * ## Associated types ##
   *
   *
-  * point_cloud_graph_traits structure provides a ways to access the type of points bundled in the point_cloud_graph
+  * point_cloud_graph_traits structure provides a means to access the type of points bundled in the point_cloud_graph
   * and, for convenience, the types of PCL point cloud and shared pointer to PCL point cloud of those points.
   *
   *
@@ -266,14 +294,32 @@
   * pcl::graph::point_cloud (point_cloud_graph<PointT>& g);
   * ~~~
   *
-  * Return a shared pointer to the PCL point cloud stored internally. There are both `const`- and `non-const`- versions.
+  * Return a shared pointer to the PCL point cloud stored internally. There are both `const` and `non-const` versions.
+  *
+  * ~~~cpp
+  * typename pcl::PointCloud<PointT>::Ptr
+  * pcl::graph::point_cloud (boost::subgraph<point_cloud_graph<PointT>>& g);
+  * ~~~
+  *
+  * Return a shared pointer to the PCL point cloud stored in the *root* graph. There are both `const` and `non-const`
+  * versions.
   *
   * ~~~cpp
   * pcl::PointIndices::Ptr
   * pcl::graph::indices (point_cloud_graph<PointT>& g);
   * ~~~
   *
-  * Return a shared pointer to the PCL point indices. There are both `const`- and `non-const`- versions.
+  * Return a shared pointer to a vector of indices of the points that belong to this graph. Since point_cloud_graph is
+  * a complete graph (i.e. it is not a subgraph of some other graph), the returned indices are guaranteed to be
+  * *[0..N-1]*, where *N* is the number of vertices. There are both `const`- and `non-const`- versions.
+  *
+  * ~~~cpp
+  * pcl::PointIndices::Ptr
+  * pcl::graph::indices (boost::subgraph<point_cloud_graph<PointT>>& g);
+  * ~~~
+  *
+  * Return a shared pointer to a vector of indices of the points of the root graph that belong to this subgraph. There
+  * are both `const`- and `non-const`- versions.
   *
   * \author Sergey Alexandrov
   * \ingroup graph */
@@ -707,7 +753,7 @@ namespace pcl
       * cloud graph that actually belong to the graph.
       *
       * Since point_cloud_graph always contain all the points that it stores,
-      * this function always returs a vector with indices from \c 0 to \c N-1,
+      * this function always returns a vector with indices from \c 0 to \c N-1,
       * where \c N is the number of vertices (points) in the graph.
       *
       * \author Sergey Alexandrov

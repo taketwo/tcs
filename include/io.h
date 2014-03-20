@@ -20,12 +20,12 @@ loadGraph (const std::string& filename,
            Graph& graph);
 
 void
-save (const std::string& filename,
-      const Eigen::SparseMatrix<float>& M);
+saveSparseMatrix (const std::string& filename,
+                  const Eigen::SparseMatrix<float>& M);
 
 void
-load (const std::string& filename,
-      Eigen::SparseMatrix<float>& M);
+loadSparseMatrix (const std::string& filename,
+                  Eigen::SparseMatrix<float>& M);
 
 #include "impl/io.hpp"
 

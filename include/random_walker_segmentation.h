@@ -42,7 +42,6 @@
 #include <boost/bimap.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/map.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #include <pcl/pcl_base.h>
 #include <pcl/point_cloud.h>

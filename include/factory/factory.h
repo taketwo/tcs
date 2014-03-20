@@ -8,6 +8,34 @@
 namespace factory
 {
 
+namespace printer
+{
+
+void
+startSection (const std::string& name = "")
+{
+  using namespace pcl::console;
+  change_text_color (stdout, TT_RESET, TT_MAGENTA);
+  std::cout << (boost::format ("%=43s\n") % name);
+  reset_text_color (stdout);
+  std::cout << std::setfill ('-') << std::setw (43) << "" << std::endl;
+}
+
+void
+endSection ()
+{
+  std::cout << std::setfill ('-') << std::setw (43) << "" << std::endl;
+}
+
+template <typename T> void
+printValue (const std::string& name, const T& value)
+{
+  pcl::console::print_info ("%20s : ", name.c_str ());
+  pcl::console::print_value ("%s\n", boost::lexical_cast<std::string> (value).c_str ());
+}
+
+}
+
 struct Option
 {
 
@@ -144,15 +172,11 @@ public:
   virtual void
   printValues ()
   {
-    pcl::console::print_info ("%s\n", name_.c_str ());
-    pcl::console::print_info ("----------------------------------------\n");
+    printer::startSection (name_);
     for (const auto& option : options_)
       for (const auto& value : option->getValueInfo ())
-      {
-        pcl::console::print_info ("%20s : ", value.first.c_str ());
-        pcl::console::print_value ("%s\n", value.second.c_str ());
-      }
-    pcl::console::print_info ("----------------------------------------\n");
+        printer::printValue (value.first, value.second);
+    printer::endSection ();
   }
 
 protected:

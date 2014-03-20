@@ -3,7 +3,8 @@ Installation
 
 1. Install latest PCL from [source](https://github.com/PointCloudLibrary/pcl).
    Its dependencies include Boost and Eigen, make sure that Boost is at least
-   **1.53** and Eigen is at least **3.2**.
+   **1.53** and Eigen is at least **3.2**. Also, a C++11 compliant compiler is
+   required.
 
 2. Clone this repository (recursively) and make out-of-source build:
 
@@ -99,8 +100,8 @@ Documentation
 Generate the project documentation with the following command:
 
     make doc
-    
-Unti tests
+
+Unit tests
 ==========
 
 Compile and run unit tests with the following command:

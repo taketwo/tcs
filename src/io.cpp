@@ -41,8 +41,8 @@ load (const std::string& filename,
 }
 
 void
-save (const std::string& filename,
-      const Eigen::SparseMatrix<float>& M)
+saveSparseMatrix (const std::string& filename,
+                  const Eigen::SparseMatrix<float>& M)
 {
   std::ofstream file (filename);
   if (file.is_open ())
@@ -56,8 +56,8 @@ save (const std::string& filename,
 }
 
 void
-load (const std::string& filename,
-      Eigen::SparseMatrix<float>& M)
+loadSparseMatrix (const std::string& filename,
+                  Eigen::SparseMatrix<float>& M)
 {
   std::ifstream stream (filename);
   if (stream)
