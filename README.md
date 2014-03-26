@@ -40,21 +40,21 @@ Visualizer interface
 
 This is the standard PCL visualizer with several extensions. It has a list of
 objects available for visualization. To see it press `h`. The list will contain
-status indicator, the key that is used to toggle display of a particular object,
-and a short description. For the random walker segmentation app it may look as
-follows:
+status indicators, short descriptions, and keys that are used to toggle display
+of the objects. For the random walker segmentation app it may look as follows:
 
-    Visualization objects
-    ---------------------
-    ○  i : input point cloud
-    ○  v : graph vertices
-    ○  C : vertex curvature
-    ○  n : vertex normals
-    ○  a : adjacency edges
-    ○  S : random walker seeds
-    ◉  c : object clusters
+                       Visualization objects
+    ─────┬╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┬──────
+      ☐  │ Input point cloud                              │ i
+      ☐  │ Graph vertices                                 │ v
+      ☐  │ Vertex curvature                               │ C
+      ☐  │ Vertex normals                                 │ n
+      ☐  │ Adjacency edges                                │ a
+      ☐  │ Random walker seeds                            │ S
+      ☒  │ Object clusters                                │ c
+    ─────┴╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┴──────
 
-For example, press `n` to toggle normals display.
+For example, press `a` to toggle graph adjacency edges display.
 
 Seed selection
 --------------
