@@ -38,8 +38,6 @@
 #ifndef PCL_GRAPH_GRAPH_BUILDER_H
 #define PCL_GRAPH_GRAPH_BUILDER_H
 
-#include <boost/ref.hpp>
-#include <boost/mpl/contains.hpp>
 #include <boost/concept_check.hpp>
 
 #include <pcl/pcl_base.h>
@@ -53,8 +51,8 @@ namespace pcl
   namespace graph
   {
 
-    /** This is an abstract base class for building a BGL-compatible graph from
-      * a point cloud.
+    /** This is an abstract base class for building a BGL-compatible point cloud
+      * graph from a point cloud.
       *
       * Building a graph involves creating vertices and establishing edges
       * between them. (A particular algorithm for doing these depends on the
@@ -63,45 +61,49 @@ namespace pcl
       * The two template parameters are the type of points in input cloud and
       * the output graph type. The graph type should be a model of
       * \ref concepts::PointCloudGraphConcept (i.e. either point_cloud_graph or
-      * \c boost::subgraph wrapped around the former). The data contained in the
-      * points of the input cloud will be copied inside the vertices of the
-      * newly created graph. Note that the points in the input cloud and the
-      * output graph may have different types, in which case only the
-      * intersecting fields will be copied over.
+      * \c boost::subgraph wrapped around the former). The type of input points
+      * and points bundled in graph vertices do not need to be the same.
       *
       * \author Sergey Alexandrov
       * \ingroup graph */
-    template <typename PointT, typename Graph>
+    template <typename PointT, typename GraphT>
     class PCL_EXPORTS GraphBuilder : public pcl::PCLBase<PointT>
     {
 
-        BOOST_CONCEPT_ASSERT ((pcl::graph::PointCloudGraphConcept<Graph>));
+        BOOST_CONCEPT_ASSERT ((pcl::graph::PointCloudGraphConcept<GraphT>));
 
       public:
 
-        typedef boost::shared_ptr<GraphBuilder<PointT, Graph> > Ptr;
+        typedef boost::shared_ptr<GraphBuilder<PointT, GraphT> > Ptr;
 
         /// Type of points in the input cloud.
         typedef PointT PointInT;
         /// Type of points in the output graph.
-        typedef typename point_cloud_graph_traits<Graph>::point_type PointOutT;
+        typedef typename point_cloud_graph_traits<GraphT>::point_type PointOutT;
 
-        typedef typename boost::graph_traits<Graph>::vertex_descriptor VertexId;
+        typedef typename boost::graph_traits<GraphT>::vertex_descriptor VertexId;
 
         /** Build a graph based on the provided input data. */
         virtual void
-        compute (Graph& graph) = 0;
+        compute (GraphT& graph) = 0;
 
-        /** Get a mapping between points in the input cloud and the
-          * vertices in the output graph.
+        /** Get a mapping between points in the input cloud and the vertices in
+          * the output graph.
           *
           * \warning Some points may have no corresponding vertex. This happens
           * e.g. for NaN points, or if the user intentionally excluded some
           * points from graph building process by providing indices vector with
           * setIndices(). For such points the "nil" vertex id will be assigned,
           * which is equal to std::numeric_limits<VertexId>::max (). */
-        virtual void
-        getPointToVertexMap (std::vector<VertexId>& vertex_ids) = 0;
+        const std::vector<VertexId>&
+        getPointToVertexMap () const
+        {
+          return (point_to_vertex_map_);
+        }
+
+      protected:
+
+        std::vector<VertexId> point_to_vertex_map_;
 
     };
 

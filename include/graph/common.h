@@ -109,6 +109,38 @@ namespace pcl
                                             std::vector<boost::reference_wrapper<Graph> >& subgraphs);
 
 
+    /** Split a given graph into subgraphs based on the values in a given
+      * vertex color map.
+      *
+      * Each created subgraph is filled with the vertices that have the same
+      * color according to the color map. Consequently, the number of created
+      * subgraphs is equal to the number of unique colors in the provided map.
+      * The subgraphs are guaranteed to be sorted in the increasing order of
+      * the color.
+      *
+      * In order to allow creation of subgraphs, the graph type should be an
+      * instantiation of boost::subgraph template. Note that the graph is
+      * passed by non-const reference, because subgraph creation modifies the
+      * parent graph. Also, note that the created subgraphs are output as
+      * references wrapped with boost::reference_wrapper. The reason is that
+      * the factory function for subgraph creation in BGL returns newly created
+      * subgraphs by reference.
+      *
+      * \param[in]  graph an input graph
+      * \param[in]  color_map a color map that defines vertex colors
+      * \param[out] subgraphs a vector of references to created subgraps
+      *
+      * \return the number of created subgraphs
+      *
+      * \author Sergey Alexandrov
+      * \ingroup graph
+      * */
+    template <typename Graph, typename ColorMap> size_t
+    createSubgraphsFromColorMap (Graph& graph,
+                                 ColorMap color_map,
+                                 std::vector<boost::reference_wrapper<Graph> >& subgraphs);
+
+
     /** Create two subgraphs of a given graph, one containing the points with
       * the given indices, and the other containing the remaining points.
       *

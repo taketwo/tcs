@@ -60,8 +60,8 @@
   *
   * The library contains means to build a weighted graph out of a raw point cloud. The first step of this process is
   * to create the vertex and edge sets based on an input point cloud. This may be accomplished with either
-  * pcl::graph::OctreeAdjacencyGraphBuilder or pcl::graph::NearestNeighborsGraphBuilder. The second step is to assign
-  * weights to the edges of the newly constructed graph. The pcl::graph::weight::weight_computer class is a flexible and
+  * pcl::graph::VoxelGridGraphBuilder or pcl::graph::NearestNeighborsGraphBuilder. The second step is to assign weights
+  * to the edges of the newly constructed graph. The pcl::graph::weight::weight_computer class is a flexible and
   * efficient (though very experimental) tool that may be used to achieve this goal.
   *
   * Finally, the library provides a number of random functions (e.g. pcl::graph::createSubgraphsFromIndices() or
@@ -115,7 +115,7 @@
   *
   * The problem though is that there is no efficient way to put the point cloud data inside the graph and retrieve it
   * back. Suppose that in some application there is a point cloud that should first be filtered using some PCL tools
-  * (e.g. \ref PassthroughFilter), then a graph-based algorithm should be applied to it, and finally some more
+  * (e.g. pcl::PassThrough filter), then a graph-based algorithm should be applied to it, and finally some more
   * processing using PCL tools is required. The user will need to copy all the points of the original point cloud
   * one-by-one to the graph, run the algorithm, and then copy it back one-by-one again.
   *
@@ -141,13 +141,13 @@
   * assert (14 == cloud->points[1].x);
   * ~~~
   *
-  * The internal point cloud may be accessed using `boost::point_cloud (Graph& g)`:
+  * The internal point cloud as a whole may be accessed using `pcl::graph::point_cloud (Graph& g)`:
   *
   * ~~~cpp
   * // Perform some graph-based algorithm on point cloud graph
   * // ...
   * // Retrieve the bundled data as a point cloud
-  * pcl::PointCloud<pcl::PointXYZ>::Ptr data = boost::point_cloud (graph);
+  * pcl::PointCloud<pcl::PointXYZ>::Ptr data = pcl::graph::point_cloud (graph);
   * // Continue to work with the data
   * pcl::io::savePCDFile ("output.pcd", *data);
   * ~~~
@@ -171,8 +171,8 @@
   * 1. There is a required template parameter `PointT` which allows the user to select the type of PCL points to be
   *    bundled in graph vertices;
   *
-  *    Note that the `VertexProperty` parameter is still available for the user, so it is possible to attach as many
-  *    [internal properties][InternalProperties] (such as `vertex_color_t`) as needed.
+  *    Note that the `VertexProperty` parameter is still available for the user, so it is possible to additionally
+  *    attach as many [internal properties][InternalProperties] (such as `vertex_color_t`) as needed.
   *
   * 2. The default value for `Directed` parameter is changed to `undirectedS` since it is more relevant in the context
   *    of point cloud processing;
@@ -223,22 +223,22 @@
   *
   *
   * Recall that point_cloud_graph stores the points bundled in its vertices inside a PCL point cloud. It could be
-  * conveniently retrieved using `boost::point_cloud (Graph& g)` and then used in PCL algorithms. `boost::subgraph`,
-  * however, is designed in such a way that it stores the indices of the vertices and edges of the parent (root) graph
-  * that belong to it, but not the data associated with these vertices and edges. In other words, a hierarchy of
-  * subgraphs (each of which represents a particular subset of vertices and edges of the root graph) shares common
-  * vertex/edge data, and all these data are contained inside the root graph. Consequently, there does not exist a PCL
-  * point cloud for each subgraph, but rather a single PCL point cloud for the root graph. This raises a question as of
-  * how the `boost::point_cloud (Subgraph& g)` function should be implemented.
+  * conveniently retrieved using `pcl::graph::point_cloud (Graph& g)` and then used in PCL algorithms.
+  * `boost::subgraph`, however, is designed in such a way that it stores the indices of the vertices and edges of the
+  * parent (root) graph that belong to it, but not the data associated with these vertices and edges. In other words, a
+  * hierarchy of subgraphs (each of which represents a particular subset of vertices and edges of the root graph) shares
+  * common vertex/edge data, and all these data are contained inside the root graph. Consequently, there does not exist
+  * a PCL point cloud for each subgraph, but rather a single PCL point cloud for the root graph. This raises a question
+  * as of how the `pcl::graph::point_cloud (Subgraph& g)` function should be implemented.
   *
   * One option is to construct a new PCL point cloud and fill it with subgraph's points. This, however, would be
-  * inconsistent with the behavior of `boost::point_cloud (Graph& g)`, which simply returns a pointer (meaning it is
-  * *O(1)* operation) that could be used to read and modify the points of the graph. Luckily, working with subsets of
+  * inconsistent with the behavior of `pcl::graph::point_cloud (Graph& g)`, which simply returns a pointer (meaning it
+  * is *O(1)* operation) that could be used to read and modify the points of the graph. Luckily, working with subsets of
   * point clouds is such a common task in the PCL world that \ref pcl::PCLBase class (which lies at the top of the
   * hierarchy of PCL algorithms) has a means for the user to supply an input point cloud *and* a vector of indices to
-  * which the processing should be limited to. Therefore, we decided that `boost::point_cloud (Subgraph& g)` should
+  * which the processing should be limited to. Therefore, we decided that `pcl::graph::point_cloud (Subgraph& g)` should
   * return the PCL point cloud of its root graph (that is, the whole set of points), and there should be an auxiliary
-  * function `boost::indices (Subgraph& g)` that returns indices of the points that belong to the subgraph.
+  * function `pcl::graph::indices (Subgraph& g)` that returns indices of the points that belong to the subgraph.
   *
   *
   * - - -
@@ -440,7 +440,7 @@ namespace pcl
           * The second parameter is completely ignored and is provided only to
           * have the same interface as `adjacency_list`. */
         point_cloud_graph (vertices_size_type num_vertices,
-                           const point_cloud_ptr& p = point_cloud_ptr (new point_cloud_type))
+                           const point_cloud_ptr& = point_cloud_ptr (new point_cloud_type))
         : Base (num_vertices)
         , m_point_cloud (new point_cloud_type (num_vertices, 1))
         {
@@ -452,7 +452,7 @@ namespace pcl
           * i.e. copies vertex and edge set along with associated properties.
           * Note that a **deep copy** of the underlying point cloud is made.
           *
-          * This costructor reuses assignment operator. An alternative approach
+          * This constructor reuses assignment operator. An alternative approach
           * would be to use the copy constructor of the base class and then copy
           * over the underlying point cloud, however the problem is that the
           * base constructor uses `boost::add_vertex` function, which will
@@ -473,7 +473,7 @@ namespace pcl
         {
           if (&x != this)
           {
-            /* The motivation behind this `reset` invokation is as follows. The
+            /* The motivation behind this `reset` invocation is as follows. The
              * `operator=` function of the base class (`vec_adj_list_impl`) will
              * use the standard `add_vertex` to append each vertex of the source
              * graph one after another. Apparently, this is not the fastest way
@@ -490,7 +490,7 @@ namespace pcl
 
         /** Remove all of the edges and vertices from the graph.
           *
-          * Note that it vipes the underlying point cloud as well. */
+          * Note that it wipes the underlying point cloud as well. */
         void clear ()
         {
           this->clearing_graph ();
@@ -515,7 +515,7 @@ namespace pcl
          * perform the desired point cloud maintenance. */
 
         void
-        added_vertex (vertex_descriptor vertex)
+        added_vertex (vertex_descriptor)
         {
           if (m_point_cloud)
             m_point_cloud->push_back (point_type ());

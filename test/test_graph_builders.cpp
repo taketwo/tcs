@@ -47,7 +47,7 @@
 
 #include "graph/graph_builder.h"
 #include "graph/nearest_neighbors_graph_builder.h"
-#include "graph/octree_adjacency_graph_builder.h"
+#include "graph/voxel_grid_graph_builder.h"
 
 typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloud;
@@ -196,13 +196,12 @@ TEST_F (NearestNeighborsGraphBuilderTest, GetPointToVertexMap)
   const size_t K = 3;
   typedef point_cloud_graph<pcl::PointXYZ> Graph;
   Graph graph;
-  std::vector<Graph::vertex_descriptor> indices;
   // Without indices
   {
     pcl::graph::NearestNeighborsGraphBuilder<pcl::PointXYZ, Graph> gb (K);
     gb.setInputCloud (grid2x3_with_extra_points);
     gb.compute (graph);
-    gb.getPointToVertexMap (indices);
+    const std::vector<Graph::vertex_descriptor>& indices = gb.getPointToVertexMap ();
     EXPECT_EQ (grid2x3_with_extra_points->size (), boost::num_vertices (graph));
     EXPECT_EQ (grid2x3_with_extra_points->size (), indices.size ());
     for (size_t i = 0; i < indices.size (); ++i)
@@ -214,7 +213,7 @@ TEST_F (NearestNeighborsGraphBuilderTest, GetPointToVertexMap)
     gb.setInputCloud (grid2x3_with_extra_points);
     gb.setIndices (grid2x3_indices);
     gb.compute (graph);
-    gb.getPointToVertexMap (indices);
+    const std::vector<Graph::vertex_descriptor>& indices = gb.getPointToVertexMap ();
     EXPECT_EQ (grid2x3_indices->size (), boost::num_vertices (graph));
     EXPECT_EQ (grid2x3_with_extra_points->size (), indices.size ());
     for (size_t i = 0; i < grid2x3_indices->size (); ++i)
@@ -224,9 +223,10 @@ TEST_F (NearestNeighborsGraphBuilderTest, GetPointToVertexMap)
   {
     pcl::graph::NearestNeighborsGraphBuilder<pcl::PointXYZ, Graph> gb (K);
     grid2x3->push_back (pcl::PointXYZ (0, NAN, 0));
+    grid2x3->is_dense = false;
     gb.setInputCloud (grid2x3);
     gb.compute (graph);
-    gb.getPointToVertexMap (indices);
+    const std::vector<Graph::vertex_descriptor>& indices = gb.getPointToVertexMap ();
     EXPECT_EQ (grid2x3->size () - 1, boost::num_vertices (graph));
     EXPECT_EQ (grid2x3->size (), indices.size ());
     for (size_t i = 0; i < grid2x3->size () - 1; ++i)
@@ -262,6 +262,7 @@ TEST_F (NearestNeighborsGraphBuilderTest, ComputeWithNaNs)
   // Without indices
   {
     grid2x3->push_back (pcl::PointXYZ (0, NAN, 0));
+    grid2x3->is_dense = false;
     gb.setInputCloud (grid2x3);
     Graph graph;
     gb.compute (graph);
@@ -275,6 +276,7 @@ TEST_F (NearestNeighborsGraphBuilderTest, ComputeWithNaNs)
   {
     grid2x3_with_extra_points->push_back (pcl::PointXYZ (0, NAN, 0));
     grid2x3_indices->push_back (grid2x3_with_extra_points->size () - 1);
+    grid2x3->is_dense = false;
     gb.setInputCloud (grid2x3_with_extra_points);
     gb.setIndices (grid2x3_indices);
     Graph graph;
@@ -305,12 +307,12 @@ TEST_F (NearestNeighborsGraphBuilderTest, ComputeWithSubgraph)
     EXPECT_XYZ_EQ (grid2x3->at (i), graph[i]);
 }
 
-class OctreeAdjacencyGraphBuilderTest : public GraphBuilderTest
+class VoxelGridGraphBuilderTest : public GraphBuilderTest
 {
 
   public:
 
-    OctreeAdjacencyGraphBuilderTest ()
+    VoxelGridGraphBuilderTest ()
     : grid4x4 (createGrid<pcl::PointXYZ> (4, 4, 1.0, 4))
     , grid4x4_indices (new std::vector<int>)
     , grid4x4_with_extra_points (copyAndAddRandomPoints<pcl::PointXYZ> (*grid4x4, 10, *grid4x4_indices))
@@ -348,39 +350,39 @@ class OctreeAdjacencyGraphBuilderTest : public GraphBuilderTest
 
 };
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, Constructor)
+TEST_F (VoxelGridGraphBuilderTest, Constructor)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointXYZRGB> Graph;
-  pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZRGBA, Graph> gb (RESOLUTION);
+  pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZRGBA, Graph> gb (RESOLUTION);
   ASSERT_FLOAT_EQ (RESOLUTION, gb.getVoxelResolution ());
 }
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, VoxelResolution)
+TEST_F (VoxelGridGraphBuilderTest, VoxelResolution)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointXYZRGB> Graph;
-  pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZRGBA, Graph> gb (RESOLUTION);
+  pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZRGBA, Graph> gb (RESOLUTION);
   gb.setVoxelResolution (RESOLUTION);
   ASSERT_FLOAT_EQ (RESOLUTION, gb.getVoxelResolution ());
 }
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeWithoutCloud)
+TEST_F (VoxelGridGraphBuilderTest, ComputeWithoutCloud)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointXYZRGB> Graph;
-  pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZRGBA, Graph> gb (RESOLUTION);
+  pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZRGBA, Graph> gb (RESOLUTION);
   Graph graph (10);
   gb.compute (graph);
   EXPECT_EQ (0, boost::num_vertices (graph));
   EXPECT_EQ (0, boost::num_edges (graph));
 }
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeSamePointTypeWithoutIndices)
+TEST_F (VoxelGridGraphBuilderTest, ComputeSamePointTypeWithoutIndices)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointXYZ> Graph;
-  pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
+  pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
   gb.setInputCloud (grid4x4);
   Graph graph;
   gb.compute (graph);
@@ -388,11 +390,11 @@ TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeSamePointTypeWithoutIndices)
   ASSERT_EQ (16, boost::num_vertices (graph));
 }
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeSamePointTypeWithIndices)
+TEST_F (VoxelGridGraphBuilderTest, ComputeSamePointTypeWithIndices)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointXYZ> Graph;
-  pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
+  pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
   gb.setInputCloud (grid4x4_with_extra_points);
   gb.setIndices (grid4x4_indices);
   Graph graph;
@@ -401,18 +403,17 @@ TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeSamePointTypeWithIndices)
   ASSERT_EQ (16, boost::num_vertices (graph));
 }
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, GetPointToVertexMap)
+TEST_F (VoxelGridGraphBuilderTest, GetPointToVertexMap)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointXYZ> Graph;
   Graph graph;
-  std::vector<Graph::vertex_descriptor> indices;
   // Without indices
   {
-    pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
+    pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
     gb.setInputCloud (grid4x4);
     gb.compute (graph);
-    gb.getPointToVertexMap (indices);
+    const std::vector<Graph::vertex_descriptor>& indices = gb.getPointToVertexMap ();
     ASSERT_EQ (16, boost::num_vertices (graph));
     ASSERT_EQ (grid4x4->size (), indices.size ());
     for (size_t i = 0; i < indices.size (); ++i)
@@ -420,11 +421,11 @@ TEST_F (OctreeAdjacencyGraphBuilderTest, GetPointToVertexMap)
   }
   // With indices
   {
-    pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
+    pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
     gb.setInputCloud (grid4x4_with_extra_points);
     gb.setIndices (grid4x4_indices);
     gb.compute (graph);
-    gb.getPointToVertexMap (indices);
+    const std::vector<Graph::vertex_descriptor>& indices = gb.getPointToVertexMap ();
     ASSERT_EQ (16, boost::num_vertices (graph));
     ASSERT_EQ (grid4x4_with_extra_points->size (), indices.size ());
     for (size_t i = 0; i < grid4x4_indices->size (); ++i)
@@ -432,11 +433,12 @@ TEST_F (OctreeAdjacencyGraphBuilderTest, GetPointToVertexMap)
   }
   // With NaN
   {
-    pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
+    pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
     grid4x4->push_back (pcl::PointXYZ (0, NAN, 0));
+    grid4x4->is_dense = false;
     gb.setInputCloud (grid4x4);
     gb.compute (graph);
-    gb.getPointToVertexMap (indices);
+    const std::vector<Graph::vertex_descriptor>& indices = gb.getPointToVertexMap ();
     ASSERT_EQ (16, boost::num_vertices (graph));
     ASSERT_EQ (grid4x4->size (), indices.size ());
     for (size_t i = 0; i < grid4x4->size () - 1; ++i)
@@ -445,11 +447,11 @@ TEST_F (OctreeAdjacencyGraphBuilderTest, GetPointToVertexMap)
   }
 }
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeDifferentPointTypes)
+TEST_F (VoxelGridGraphBuilderTest, ComputeDifferentPointTypes)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointXYZRGBNormal> Graph;
-  pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
+  pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZ, Graph> gb (RESOLUTION);
   gb.setInputCloud (grid4x4);
   Graph graph;
   gb.compute (graph);
@@ -465,25 +467,25 @@ TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeDifferentPointTypes)
   }
 }
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeRGBAveraging)
+TEST_F (VoxelGridGraphBuilderTest, ComputeRGBAveraging)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointXYZRGBA> Graph;
-  pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZRGBA, Graph> gb (RESOLUTION);
+  pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZRGBA, Graph> gb (RESOLUTION);
   gb.setInputCloud (grid4x4_with_colors);
   Graph graph;
   gb.compute (graph);
   EXPECT_EQ (42, boost::num_edges (graph));
   ASSERT_EQ (16, boost::num_vertices (graph));
   for (Graph::vertex_descriptor i = 0; i < boost::num_vertices (graph); ++i)
-    EXPECT_EQ (0x010101, graph[i].rgba);
+    EXPECT_EQ (0xFF010101, graph[i].rgba);
 }
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeNormalAveraging)
+TEST_F (VoxelGridGraphBuilderTest, ComputeNormalAveraging)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointNormal> Graph;
-  pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointNormal, Graph> gb (RESOLUTION);
+  pcl::graph::VoxelGridGraphBuilder<pcl::PointNormal, Graph> gb (RESOLUTION);
   gb.setInputCloud (grid4x4_with_normals);
   Graph graph;
   gb.compute (graph);
@@ -497,7 +499,7 @@ TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeNormalAveraging)
   }
 }
 
-TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeWithSubgraph)
+TEST_F (VoxelGridGraphBuilderTest, ComputeWithSubgraph)
 {
   const float RESOLUTION = 1.0;
   typedef point_cloud_graph<pcl::PointNormal,
@@ -506,7 +508,7 @@ TEST_F (OctreeAdjacencyGraphBuilderTest, ComputeWithSubgraph)
                             boost::no_property,
                             boost::property<boost::edge_index_t, float> > Graph;
   typedef boost::subgraph<Graph> Subgraph;
-  pcl::graph::OctreeAdjacencyGraphBuilder<pcl::PointXYZ, Subgraph> gb (RESOLUTION);
+  pcl::graph::VoxelGridGraphBuilder<pcl::PointXYZ, Subgraph> gb (RESOLUTION);
   gb.setInputCloud (grid4x4);
   Subgraph graph;
   gb.compute (graph);

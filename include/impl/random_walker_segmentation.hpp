@@ -46,14 +46,14 @@
 #include "random_walker.h"
 #include "random_walker_segmentation.h"
 #include "graph/common.h"
-#include "graph/weight.h"
+#include "graph/edge_weight_computer.h"
 
 #include "measure_runtime.h"
 
 template <typename PointT>
 pcl::segmentation::RandomWalkerSegmentation<PointT>::RandomWalkerSegmentation (bool store_potentials)
 : input_as_cloud_ (true)
-, graph_builder_ (0.006f, true)
+, graph_builder_ (0.006f)
 , store_potentials_ (store_potentials)
 {
 }
@@ -118,22 +118,16 @@ pcl::segmentation::RandomWalkerSegmentation<PointT>::preComputeGraph ()
     MEASURE_RUNTIME ("Computing normals... ", pcl::graph::computeNormalsAndCurvatures (*graph_));
     MEASURE_RUNTIME ("Computing curvature signs... ", pcl::graph::computeSignedCurvatures (*graph_));
     {
-      using namespace pcl::graph::weight;
-      weight_computer<PointWithNormal,
-                      terms<
-                        tag::normalized<tag::xyz, tag::graph>
-                      , tag::drop_if_convex<tag::normal>
-                      , tag::drop_if_convex<tag::curvature>
-                      , tag::normalized<tag::color, tag::graph>
-                     >,
-                     pcl::graph::weight::function::gaussian,
-                     pcl::graph::weight::policy::coerce
-                     > computeWeights (tag::xyz::scale = 3.0f,
-                                       tag::normal::scale = 0.01f,
-                                       tag::curvature::scale = 0.0001f,
-                                       tag::color::scale = 3.0f,
-                                       tag::weight::threshold = 1e-5);
-      MEASURE_RUNTIME ("Computing edge weights... ", computeWeights (*graph_));
+      using namespace pcl::graph;
+      typedef EdgeWeightComputer<Graph> EWC;
+      EWC computer;
+      computer.template addTerm<terms::XYZ> (3.0f, EWC::NORMALIZATION_GLOBAL);
+      computer.template addTerm<terms::Normal> (0.01f, 0.0f);
+      computer.template addTerm<terms::Curvature> (0.0001f, 0.0f);
+      computer.template addTerm<terms::RGB> (3.0f, EWC::NORMALIZATION_GLOBAL);
+      computer.setSmallWeightThreshold (1e-5);
+      computer.setSmallWeightPolicy (EWC::SMALL_WEIGHT_COERCE_TO_THRESHOLD);
+      MEASURE_RUNTIME ("Computing edge weights... ", computer.compute (*graph_));
     }
   }
 
@@ -207,8 +201,7 @@ pcl::segmentation::RandomWalkerSegmentation<PointT>::segment (std::vector<PointI
 
   if (input_as_cloud_)
   {
-    std::vector<VertexId> point_to_vertex_map;
-    graph_builder_.getPointToVertexMap (point_to_vertex_map);
+    const std::vector<VertexId>& point_to_vertex_map = graph_builder_.getPointToVertexMap ();
     for (size_t i = 0; i < input_->size (); ++i)
     {
       const VertexId& v = point_to_vertex_map[i];

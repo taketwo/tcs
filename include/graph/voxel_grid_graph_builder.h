@@ -35,60 +35,75 @@
  *
  */
 
-#ifndef PCL_GRAPH_WEIGHT_TERMS_CURVATURE_H
-#define PCL_GRAPH_WEIGHT_TERMS_CURVATURE_H
+#ifndef PCL_GRAPH_VOXEL_GRID_GRAPH_BUILDER_H
+#define PCL_GRAPH_VOXEL_GRID_GRAPH_BUILDER_H
 
-#include "graph/weight/computers/computer_base.h"
+#include "graph/graph_builder.h"
 
-namespace pcl { namespace graph { namespace weight {
-
-BOOST_PARAMETER_NESTED_KEYWORD(tag, curvature_scale, scale)
-
-namespace impl
+namespace pcl
 {
 
-  template <typename Point>
-  struct curvature_impl
-    : computer_base
+  namespace graph
   {
 
-    typedef Point point_type;
-
-    template <typename Args>
-    curvature_impl (const Args& args)
-    : scale_ (args[curvature_scale | 1.0f])
+    /** This class builds a BGL graph representing an input dataset by using
+      * octree::OctreePointCloud.
+      *
+      * For additional information see documentation for \ref GraphBuilder.
+      *
+      * \author Sergey Alexandrov
+      * \ingroup graph */
+    template <typename PointT, typename GraphT>
+    class PCL_EXPORTS VoxelGridGraphBuilder : public GraphBuilder<PointT, GraphT>
     {
-    }
 
-    float operator () (const point_type& p1, const point_type& p2) const
-    {
-      return (scale_ > 0.0f ? std::fabs (p1.curvature) * std::fabs (p2.curvature) / scale_ : 0.0f);
-    }
+        using PCLBase<PointT>::initCompute;
+        using PCLBase<PointT>::deinitCompute;
+        using PCLBase<PointT>::indices_;
+        using PCLBase<PointT>::input_;
+        using GraphBuilder<PointT, GraphT>::point_to_vertex_map_;
 
-    std::string to_str () const
-    {
-      return "{curvature_impl} << " + computer_base::to_str ();
-    }
+      public:
 
-    float scale_;
+        using typename GraphBuilder<PointT, GraphT>::PointInT;
+        using typename GraphBuilder<PointT, GraphT>::PointOutT;
+        using typename GraphBuilder<PointT, GraphT>::VertexId;
 
-  };
+        /** Constructor.
+          *
+          * \param[in] voxel_resolution resolution of the voxel grid */
+        VoxelGridGraphBuilder (float voxel_resolution)
+        : voxel_resolution_ (voxel_resolution)
+        {
+        }
 
-} // namespace impl
+        virtual void
+        compute (GraphT& graph);
 
-namespace tag
-{
+        inline void
+        setVoxelResolution (float resolution)
+        {
+          voxel_resolution_ = resolution;
+        }
 
-  struct curvature
-    : detail::requires_all<pcl::fields::curvature>
-    , curvature_scale
-  {
-    typedef impl::curvature_impl<boost::mpl::_1> impl;
-  };
+        inline float
+        getVoxelResolution () const
+        {
+          return (voxel_resolution_);
+        }
 
-} // namespace tag
+      private:
 
-} } } // pcl::graph::weight
+        /// Resolution of the voxel grid.
+        float voxel_resolution_;
 
-#endif /* PCL_GRAPH_WEIGHT_TERMS_CURVATURE_H */
+    };
+
+  }
+
+}
+
+#include "graph/impl/voxel_grid_graph_builder.hpp"
+
+#endif /* PCL_GRAPH_VOXEL_GRID_GRAPH_BUILDER_H */
 

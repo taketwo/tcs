@@ -36,12 +36,13 @@ public:
     computeError ();
 
     size_t error = error_indices_.size ();
-    float p = 100.0 * error / groundtruth_cloud_.size ();
 
     if (with_gui)
     {
       auto viewer = create ();
-      pcl::console::print_error ("Erroneus points: %i (%.2f%%)\n", error, p);
+      size_t size = getRealCloudSize (groundtruth_cloud_);
+      float p = 100.0 * error / size;
+      pcl::console::print_error ("Erroneus points: %i (%.2f%% of %zu)\n", error, p, size);
       viewer->add
       ( CreatePointCloudObject<pcl::PointXYZRGBA> ("incorrect", "i")
       . description                               ("Incorrectly segmented points")
@@ -227,6 +228,16 @@ private:
         return colorizeByIndex (groundtruth_cloud_, index_map);
       }
     }
+  }
+
+  size_t
+  getRealCloudSize (const pcl::PointCloud<pcl::PointXYZL>& cloud)
+  {
+    size_t cnt = 0;
+    for (const auto& point : cloud.points)
+      if (pcl::isFinite (point))
+        ++cnt;
+    return cnt;
   }
 
   std::map<Label, Segment> overlap_map_;

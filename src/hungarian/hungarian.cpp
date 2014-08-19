@@ -52,3 +52,30 @@ findAssignment (const std::vector<std::tuple<uint32_t, uint32_t, size_t>>& tripl
     assignment.insert (std::make_pair (l1_map_inverse[pair.first], l2_map_inverse[pair.second]));
   return assignment;
 }
+
+std::map<uint32_t, uint32_t>
+findAssignment (const Eigen::MatrixXi& weights)
+{
+  bool transpose = weights.rows () > weights.cols ();
+  int rows = !transpose ? weights.rows () : weights.cols ();
+  int cols = !transpose ? weights.cols () : weights.rows ();
+
+  Matrix m (rows);
+  for (int i = 0; i < rows; ++i)
+  {
+    m[i].resize (cols);
+    for (int j = 0; j < cols; ++j)
+      m[i][j].SetWeight (!transpose ? weights (i, j) : weights (j, i));
+  }
+  // Run the algorithm
+  std::map<uint32_t, uint32_t> assignment;
+  BipartiteGraph bg (m);
+  Hungarian h (bg);
+  h.HungarianAlgo ();
+  // Create assignment
+  for (const auto& pair : h.M)
+    assignment.insert (std::make_pair (!transpose ? pair.first : pair.second,
+                                       !transpose ? pair.second : pair.first));
+  return assignment;
+}
+

@@ -11,7 +11,7 @@
 
 typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloud;
-typedef typename PointCloud::Ptr PointCloudPtr;
+typedef PointCloud::Ptr PointCloudPtr;
 
 typedef
   pcl::graph::point_cloud_graph<

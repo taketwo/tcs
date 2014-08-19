@@ -6,7 +6,6 @@
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 
-#define WC_WITHOUT_CONVEX_DROP
 #include "typedefs.h"
 
 #include "io.h"
@@ -18,15 +17,11 @@
 
 int main (int argc, char ** argv)
 {
-  factory::GraphFactory<PointT, Graph, WeightComputer> g_factory;
+  factory::GraphFactory<PointT, Graph> g_factory;
 
   if (argc < 2 || pcl::console::find_switch (argc, argv, "--help"))
   {
     pcl::console::print_error ("Usage: %s <pcd-file>\n"
-                               "--1-ring (use 1-ring neighborhood for normal computation)\n"
-                               "--smoothing-spatial <float>\n"
-                               "--smoothing-influence <float>\n"
-                               "%s\n"
                                "%s\n"
                                , argv[0]
                                , g_factory.getUsage ().c_str ());

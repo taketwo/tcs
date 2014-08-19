@@ -5,7 +5,7 @@
 
 #include "factory.h"
 #include "graph_builder_factory.h"
-#include "weight_computer_factory.h"
+#include "edge_weight_computer_factory.h"
 
 #include "graph/common.h"
 
@@ -14,7 +14,7 @@
 namespace factory
 {
 
-template <typename Point, typename Graph, typename WeightComputer>
+template <typename Point, typename Graph>
 class GraphFactory : public Factory
 {
 
@@ -22,7 +22,9 @@ public:
 
   typedef boost::shared_ptr<Graph> GraphPtr;
   typedef boost::reference_wrapper<Graph> GraphRef;
+  typedef std::vector<GraphRef> GraphRefVector;
   typedef typename pcl::PointCloud<Point>::ConstPtr PointCloudConstPtr;
+  typedef typename pcl::graph::GraphBuilder<Point, Graph>::Ptr GraphBuilderPtr;
 
   GraphFactory ()
   : Factory ("Graph")
@@ -63,27 +65,27 @@ public:
   instantiate (const PointCloudConstPtr& cloud, int argc, char** argv)
   {
     parse (argc, argv);
-    auto gb = gb_factory_.instantiate (argc, argv);
+    gb_ = gb_factory_.instantiate (argc, argv);
     auto wc = wc_factory_.instantiate (argc, argv);
     // Build graph
     produced_graph_.reset (new Graph);
-    gb->setInputCloud (cloud);
-    MEASURE_RUNTIME ("Building graph... ", gb->compute (*produced_graph_));
-    MEASURE_RUNTIME ("Computing normals... ", pcl::graph::computeNormalsAndCurvatures (*produced_graph_));
-    MEASURE_RUNTIME ("Smoothening graph... ", pcl::graph::smoothen (*produced_graph_, smoothing_spatial_, smoothing_influence_));
-    MEASURE_RUNTIME ("Re-computing normals... ", pcl::graph::computeNormalsAndCurvatures (*produced_graph_));
-    MEASURE_RUNTIME ("Computing curvature signs... ", pcl::graph::computeSignedCurvatures (*produced_graph_));
-    // Compute weights
-    MEASURE_RUNTIME ("Computing edge weights... ", wc (*produced_graph_));
-    // Find connected components (if requested)
-    if (component_ != -1)
-    {
-      typedef std::vector<GraphRef> GraphRefVector;
-      GraphRefVector components;
-      pcl::graph::createSubgraphsFromConnectedComponents (*produced_graph_, components);
-      if (component_ < components.size ())
-        return GraphRef (components[component_].get ());
-    }
+    gb_->setInputCloud (cloud);
+    MEASURE_RUNTIME ("Building graph... ",
+                     gb_->compute (*produced_graph_));
+    MEASURE_RUNTIME ("Computing normals... ",
+                     pcl::graph::computeNormalsAndCurvatures (*produced_graph_));
+    MEASURE_RUNTIME ("Smoothening graph... ",
+                     pcl::graph::smoothen (*produced_graph_, smoothing_spatial_, smoothing_influence_));
+    MEASURE_RUNTIME ("Re-computing normals... ",
+                     pcl::graph::computeNormalsAndCurvatures (*produced_graph_));
+    MEASURE_RUNTIME ("Computing curvature signs... ",
+                     pcl::graph::computeSignedCurvatures (*produced_graph_));
+    MEASURE_RUNTIME ("Computing edge weights... ",
+                     wc->compute (*produced_graph_));
+    MEASURE_RUNTIME ("Computing connected components... ",
+                     pcl::graph::createSubgraphsFromConnectedComponents (*produced_graph_, components_));
+    if (component_ != -1 && component_ < static_cast<int> (components_.size ()))
+      return components_[component_];
     return GraphRef (*produced_graph_);
   }
 
@@ -93,16 +95,31 @@ public:
     return produced_graph_;
   }
 
+  GraphRefVector&
+  getProducedGraphComponents ()
+  {
+    return components_;
+  }
+
+  GraphBuilderPtr
+  getGraphBuilder ()
+  {
+    return gb_;
+  }
+
 private:
 
   NumericOption<int> component_;
   NumericOption<float> smoothing_spatial_;
   NumericOption<float> smoothing_influence_;
 
-  WeightComputerFactory<WeightComputer> wc_factory_;
+  EdgeWeightComputerFactory<Graph> wc_factory_;
   GraphBuilderFactory<Point, Graph> gb_factory_;
 
+  GraphBuilderPtr gb_;
+
   GraphPtr produced_graph_;
+  GraphRefVector components_;
 
 };
 

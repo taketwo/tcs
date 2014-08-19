@@ -12,42 +12,32 @@
 #include "io.h"
 #include "graph_visualizer.h"
 #include "seed_utils.h"
+#include "label_utils.h"
 #include "measure_runtime.h"
 
-#include "factory/weight_computer_factory.h"
+#include "factory/edge_weight_computer_factory.h"
 #include "factory/graph_builder_factory.h"
 
 #include "graph/common.h"
-#include "graph/weight.h"
+#include "graph/edge_weight_computer.h"
 
 #include "random_walker_segmentation.h"
 
-typedef pcl::PointXYZRGBA PointT;
+typedef pcl::PointXYZRGB PointT;
 typedef pcl::PointXYZRGBNormal PointWithNormalT;
 typedef pcl::Normal NormalT;
 
 typedef pcl::PointCloud<PointT> PointCloudT;
+typedef pcl::PointCloud<PointWithNormalT> PointWithNormalCloudT;
 typedef pcl::PointCloud<NormalT> NormalCloudT;
 
-typedef typename pcl::segmentation::RandomWalkerSegmentation<PointT>::Graph Graph;
-typedef typename pcl::segmentation::RandomWalkerSegmentation<PointT>::GraphPtr GraphPtr;
-
-using namespace pcl::graph::weight;
-typedef weight_computer<PointWithNormalT,
-                        terms<
-                          tag::normalized<tag::xyz, tag::graph>
-                        , tag::drop_if_convex<tag::normal>
-                        , tag::drop_if_convex<tag::curvature>
-                        , tag::normalized<tag::color, tag::graph>
-                        >,
-                        pcl::graph::weight::function::gaussian,
-                        policy::coerce
-                        > WeightComputer;
+typedef typename pcl::segmentation::RandomWalkerSegmentation<pcl::PointXYZRGB>::Graph Graph;
+typedef typename pcl::segmentation::RandomWalkerSegmentation<pcl::PointXYZRGB>::GraphPtr GraphPtr;
 
 int main (int argc, char ** argv)
 {
-  factory::WeightComputerFactory<WeightComputer> wc_factory;
-  factory::GraphBuilderFactory<PointT, Graph> gb_factory;
+  factory::EdgeWeightComputerFactory<Graph> wc_factory;
+  factory::GraphBuilderFactory<PointWithNormalT, Graph> gb_factory;
 
   if (argc < 2 || pcl::console::find_switch (argc, argv, "--help"))
   {
@@ -116,7 +106,6 @@ int main (int argc, char ** argv)
   . description                    ("Input point cloud")
   . data                           (cloud)
   . pointSize                      (4)
-  . visibility                     (0.95)
   );
 
 
@@ -128,14 +117,19 @@ int main (int argc, char ** argv)
   GraphPtr g (new Graph);
   auto& graph = *g;
 
-  gb->setInputCloud (cloud);
+  typename PointWithNormalCloudT::Ptr cloud_with_normals (new PointWithNormalCloudT);
+  if (normals->size ())
+    pcl::concatenateFields (*cloud, *normals, *cloud_with_normals);
+  else
+    pcl::copyPointCloud (*cloud, *cloud_with_normals);
+  gb->setInputCloud (cloud_with_normals);
 
   MEASURE_RUNTIME ("Building graph... ", gb->compute (graph));
   MEASURE_RUNTIME ("Computing normals... ", pcl::graph::computeNormalsAndCurvatures (graph));
   MEASURE_RUNTIME ("Smoothening graph... ", pcl::graph::smoothen (graph, 0.012, 0.0012));
   MEASURE_RUNTIME ("Computing normals... ", pcl::graph::computeNormalsAndCurvatures (graph));
   MEASURE_RUNTIME ("Computing curvature signs... ", pcl::graph::computeSignedCurvatures (graph));
-  MEASURE_RUNTIME ("Computing edge weights... ", wc (graph));
+  MEASURE_RUNTIME ("Computing edge weights... ", wc->compute (graph));
 
   pcl::console::print_info ("Built a graph with %zu vertices and %zu edges\n",
                             boost::num_vertices (graph),
@@ -154,7 +148,6 @@ int main (int argc, char ** argv)
   ( CreatePointCloudObject<pcl::PointXYZRGBA> ("vertices", "v")
   . description                               ("Graph vertices")
   . pointSize                                 (6)
-  . visibility                                (0.95)
   . data                                      (gv.getVerticesCloudColorsNatural ())
   );
 
@@ -162,7 +155,6 @@ int main (int argc, char ** argv)
   ( CreatePointCloudObject<pcl::PointXYZRGBA> ("curvature", "C")
   . description                               ("Vertex curvature")
   . pointSize                                 (6)
-  . visibility                                (0.95)
   . data                                      (gv.getVerticesCloudColorsCurvature ())
   );
 
@@ -203,12 +195,12 @@ int main (int argc, char ** argv)
   }
 
   viewer->add
-  ( CreatePointCloudObject<PointT> ("seeds", "S")
-  . description                    ("Random walker seeds")
-  . pointSize                      (14)
-  . visibility                     (0.65)
-  . color                          (0xFF0000)
-  . data                           (seeds::createColoredCloudFromSeeds (*seeds_cloud))
+  ( CreatePointCloudObject<pcl::PointXYZRGBA> ("seeds", "S")
+  . description                               ("Random walker seeds")
+  . pointSize                                 (14)
+  . visibility                                (0.65)
+  . color                                     (0xFF0000)
+  . data                                      (seeds::createColoredCloudFromSeeds (*seeds_cloud))
   );
 
 
@@ -217,7 +209,7 @@ int main (int argc, char ** argv)
    *********************************************************************/
 
 
-  pcl::segmentation::RandomWalkerSegmentation<PointT> rws (mode_potential);
+  pcl::segmentation::RandomWalkerSegmentation<pcl::PointXYZRGBA> rws (mode_potential);
   rws.setInputGraph (g);
   rws.setSeeds (seeds_cloud);
 
@@ -229,7 +221,6 @@ int main (int argc, char ** argv)
   ( CreatePointCloudWithColorShufflingObject ("clusters", "c")
   . description                              ("Object clusters")
   . pointSize                                (3)
-  . visibility                               (1.0)
   . data                                     (option_fixed_colors
                                               ? gv.getVerticesCloudColorsFromMapFixed ()
                                               : gv.getVerticesCloudColorsFromMapRandom ())
@@ -244,11 +235,10 @@ int main (int argc, char ** argv)
     Eigen::VectorXf potential = rws.getPotentials ().col (0);
 
     viewer->add
-    ( CreatePointCloudObject<PointT> ("potential", "p")
-    . description                    ("Random walker potentials")
-    . pointSize                      (3)
-    . visibility                     (1.0)
-    . onUpdate                       ([&]{ return gv.getVerticesCloudColorsFromVector (potential); })
+    ( CreatePointCloudObject<pcl::PointXYZRGBA> ("potential", "p")
+    . description                               ("Random walker potentials")
+    . pointSize                                 (3)
+    . onUpdate                                  ([&]{ return gv.getVerticesCloudColorsFromVector (potential); })
     );
 
     viewer->update ("potential");
@@ -291,19 +281,11 @@ int main (int argc, char ** argv)
 
   if (option_save)
   {
-    pcl::PointCloud<pcl::PointXYZL> labeled;
-    pcl::copyPointCloud (*cloud, labeled);
-    std::vector<boost::graph_traits<Graph>::vertex_descriptor> point_to_vertex_map;
-    gb->getPointToVertexMap (point_to_vertex_map);
-    for (size_t i = 0; i < labeled.size (); ++i)
-    {
-      const auto& v = point_to_vertex_map[i];
-      if (v >= boost::num_vertices (graph))
-        labeled[i].label = 0;
-      else
-        labeled[i].label = boost::get (boost::vertex_color, graph, v);
-    }
-    pcl::io::savePCDFile ("segmentation.pcd", labeled);
+    pcl::PointCloud<pcl::PointXYZL>::Ptr labeled;
+    labeled = labels::createLabeledCloudFromColorMap (*cloud,
+                                                      gb->getPointToVertexMap (),
+                                                      boost::get (boost::vertex_color, graph));
+    pcl::io::savePCDFile ("segmentation.pcd", *labeled);
   }
 
   return (0);

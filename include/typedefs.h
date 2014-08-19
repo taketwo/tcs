@@ -7,7 +7,6 @@
 #include <pcl/point_types.h>
 
 #include "graph/point_cloud_graph.h"
-#include "graph/weight.h"
 
 typedef pcl::PointXYZRGBA PointT;
 typedef pcl::PointXYZRGBNormal PointWithNormalT;
@@ -58,50 +57,10 @@ typedef
 
 }
 
-namespace wc_with_convex_drop
-{
-
-using namespace pcl::graph::weight;
-typedef weight_computer<PointWithNormalT,
-                        terms<
-                          tag::normalized<tag::xyz, tag::graph>
-                        , tag::drop_if_convex<tag::normal>
-                        , tag::drop_if_convex<tag::curvature>
-                        , tag::normalized<tag::color, tag::graph>
-                        >,
-                        pcl::graph::weight::function::gaussian,
-                        WC_SMALL_WEIGHT_POLICY
-                        > WeightComputer;
-
-}
-
-namespace wc_without_convex_drop
-{
-
-using namespace pcl::graph::weight;
-typedef weight_computer<PointWithNormalT,
-                        terms<
-                          tag::normalized<tag::xyz, tag::graph>
-                        , tag::normal
-                        , tag::curvature
-                        , tag::normalized<tag::color, tag::graph>
-                        >,
-                        pcl::graph::weight::function::gaussian,
-                        WC_SMALL_WEIGHT_POLICY
-                        > WeightComputer;
-
-}
-
 #ifndef GRAPH_WITHOUT_NORMALS
   typedef graph_with_normals::Graph Graph;
 #else
   typedef graph_without_normals::Graph Graph;
-#endif
-
-#ifndef WC_WITHOUT_CONVEX_DROP
-  typedef wc_with_convex_drop::WeightComputer WeightComputer;
-#else
-  typedef wc_without_convex_drop::WeightComputer WeightComputer;
 #endif
 
 typedef boost::shared_ptr<Graph> GraphPtr;

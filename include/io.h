@@ -8,8 +8,8 @@
 
 template <typename PointT> bool
 load (const std::string& filename,
-      typename pcl::PointCloud<PointT>::Ptr& cloud,
-      typename pcl::PointCloud<pcl::Normal>::Ptr normals = pcl::PointCloud<pcl::Normal>::Ptr ());
+      typename pcl::PointCloud<PointT>::Ptr cloud,
+      pcl::PointCloud<pcl::Normal>::Ptr normals = pcl::PointCloud<pcl::Normal>::Ptr ());
 
 template <typename Graph> bool
 saveGraph (const std::string& filename,

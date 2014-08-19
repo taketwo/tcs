@@ -8,8 +8,10 @@
 #include <vtkCellArray.h>
 #include <vtkSmartPointer.h>
 
+#include "scaler.h"
 #include "as_range.h"
 #include "tviewer/color.h"
+#include "tviewer/visualization_objects/arrow_array_object.h"
 
 #include "graph/point_cloud_graph.h"
 
@@ -28,6 +30,24 @@ class GraphVisualizer
     GraphVisualizer (const GraphT& g)
     : graph_ (g)
     {
+    }
+
+    tviewer::ArrowsPtr
+    getEdgesArrowArray ()
+    {
+      tviewer::ArrowsPtr arrows (new tviewer::Arrows);
+      EdgeIterator s, e;
+      auto scale = getRangeScalingForEdges ();
+      for (boost::tie (s, e) = boost::edges (graph_); s != e; ++s)
+      {
+        auto u = boost::source (*s, graph_);
+        auto v = boost::target (*s, graph_);
+        auto w = boost::get (boost::edge_weight, graph_, *s);
+        arrows->push_back ({ graph_[u].getVector3fMap (),
+                             graph_[v].getVector3fMap (),
+                             tviewer::getColor (scale (w))});
+      }
+      return arrows;
     }
 
     vtkSmartPointer<vtkPolyData>
@@ -170,7 +190,7 @@ class GraphVisualizer
       assert (static_cast<int> (boost::num_vertices (graph_)) == colors.size ());
       PointCloudT::Ptr cloud (new PointCloudT);
       copyPointCloud (*pcl::graph::point_cloud (graph_), *pcl::graph::indices (graph_), *cloud);
-      auto scale = getRangeScalingForVector (colors);
+      auto scale = getScaler (colors);
       for (const auto& s : as_range (boost::vertices (graph_)))
       {
         cloud->at (s).rgba = tviewer::getColor (scale (colors[s]));
@@ -234,15 +254,7 @@ class GraphVisualizer
         //return [min, max] (float v) { return (std::log (v) - min) / (max - min); };
         return [min, max] (float v) { return (v - min) / (max - min); };
       else
-        return [] (float v) { return 1.0; };
-    }
-
-    std::function<float (float)> getRangeScalingForVector (const Eigen::VectorXf& values)
-    {
-      float max = values.maxCoeff ();
-      float min = values.minCoeff ();
-      float range = max - min;
-      return [min, range] (float v) { return (v - min) / range; };
+        return [] (float) { return 1.0; };
     }
 
     const GraphT& graph_;

@@ -49,7 +49,7 @@
 #include <pcl/search/search.h>
 
 #include "graph/point_cloud_graph.h"
-#include "graph/octree_adjacency_graph_builder.h"
+#include "graph/voxel_grid_graph_builder.h"
 
 namespace pcl
 {
@@ -74,10 +74,10 @@ namespace pcl
       * for table-top scenes captured by a 3D sensor like Kinect.
       *
       * An advanced user may provide a pre-build graph rather than a point
-      * cloud if the defaults does not suit for the data at hand. See the tools
-      * available in the \ref graph "pcl_graph" module for construction of
+      * cloud if the defaults are not suitable for the data at hand. See the
+      * tools available in the \ref graph "pcl_graph" module for construction of
       * graphs from point clouds (pcl::graph::GraphBuilder) and computing edge
-      * weights (pcl::graph::weight::weight_computer).
+      * weights (pcl::graph::EdgeWeightComputer).
       *
       * \author Sergey Alexandrov
       * \ingroup segmentation */
@@ -129,7 +129,7 @@ namespace pcl
                  boost::undirectedS,
                  boost::property<boost::vertex_color_t, uint32_t>,
                  boost::property<boost::edge_weight_t, float,
-                 boost::property<boost::edge_index_t, int>>>>              Graph;
+                 boost::property<boost::edge_index_t, int> > > >           Graph;
         typedef typename boost::graph_traits<Graph>::vertex_descriptor     VertexId;
         typedef typename boost::graph_traits<Graph>::edge_descriptor       EdgeId;
         typedef typename boost::graph_traits<Graph>::vertex_iterator       VertexIterator;
@@ -211,7 +211,7 @@ namespace pcl
           *
           * Example usage:
           *
-          * \code
+          * ~~~{.cpp}
           * RandomWalkerSegmentation<PointT> rws;
           * rws.setInputCloud (cloud);
           * rws.preComputeGraph ();
@@ -220,7 +220,7 @@ namespace pcl
           * // Ask the user to select seeds
           * rws.setSeeds (seeds);
           * rws.segment (clusters);
-          * \endcode
+          * ~~~
           *
           * \note It is not necessary to call this function explicitly before
           * performing segmentation with segment()! */
@@ -264,9 +264,9 @@ namespace pcl
 
         pcl::PointCloud<PointXYZL>::ConstPtr seeds_;
 
-        pcl::graph::OctreeAdjacencyGraphBuilder<PointT, Graph> graph_builder_;
+        pcl::graph::VoxelGridGraphBuilder<PointT, Graph> graph_builder_;
 
-        /// Maintains bi-directional mapping beetwen seed labels and color
+        /// Maintains bi-directional mapping between seed labels and color
         /// identifiers (which are used in random walker segmentation).
         boost::bimap<uint32_t, uint32_t> label_color_bimap_;
 

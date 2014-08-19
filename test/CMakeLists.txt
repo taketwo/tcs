@@ -24,7 +24,7 @@ TEST_ADD(random_walker
 TEST_ADD(point_cloud_graph
          LINK_WITH ${PCL_LIBRARIES}
 )
-TEST_ADD(weight_computer
+TEST_ADD(edge_weight_computer
          LINK_WITH ${PCL_LIBRARIES}
 )
 TEST_ADD(graph_common

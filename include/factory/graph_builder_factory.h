@@ -4,7 +4,7 @@
 #include "factory.h"
 #include "graph/graph_builder.h"
 #include "graph/nearest_neighbors_graph_builder.h"
-#include "graph/octree_adjacency_graph_builder.h"
+#include "graph/voxel_grid_graph_builder.h"
 
 namespace factory
 {
@@ -19,7 +19,7 @@ public:
 
   GraphBuilderFactory ()
   : Factory ("Graph Builder")
-  , builder_ ("builder type", "--builder", { { "octree", "OCTREE ADJACENCY" },
+  , builder_ ("builder type", "--builder", { { "vg", "VOXEL GRID" },
                                              { "nn", "NEAREST NEIGHBORS"} })
   , voxel_resolution_ ("voxel resolution", "-v", 0.006f)
   , number_of_neighbors_ ("number of neighbors", "--nn", 14)
@@ -36,8 +36,8 @@ public:
   {
     parse (argc, argv);
     typename GraphBuilderT::Ptr gb;
-    if (builder_.value == "octree")
-      gb.reset (new pcl::graph::OctreeAdjacencyGraphBuilder<PointT, GraphT> (voxel_resolution_, no_transform_));
+    if (builder_.value == "vg")
+      gb.reset (new pcl::graph::VoxelGridGraphBuilder<PointT, GraphT> (voxel_resolution_));
     else
       gb.reset (new pcl::graph::NearestNeighborsGraphBuilder<PointT, GraphT> (number_of_neighbors_));
     return gb;

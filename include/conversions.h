@@ -6,11 +6,16 @@
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
+#include <pcl/io/vtk_lib_io.h>
+
+#include "graph/point_cloud_graph.h"
 
 // Based on geom_utils.h from object discovery source code.
 
-template <typename PointT>
-void meshToPointsAndNormals (const pcl::PolygonMesh::ConstPtr& mesh, typename pcl::PointCloud<PointT>::Ptr& cloud, pcl::PointCloud<pcl::Normal>::Ptr& normals)
+template <typename PointT> void
+meshToPointsAndNormals (const pcl::PolygonMesh::ConstPtr& mesh,
+                        typename pcl::PointCloud<PointT>::Ptr& cloud,
+                        pcl::PointCloud<pcl::Normal>::Ptr& normals)
 {
   // Unfold mesh, which is stored as ROS message
   pcl::fromPCLPointCloud2 (mesh->cloud, *cloud);
@@ -64,6 +69,96 @@ void meshToPointsAndNormals (const pcl::PolygonMesh::ConstPtr& mesh, typename pc
   }
 }
 
+template <typename Graph> void
+mesh2graph (const std::string& filename, Graph& graph)
+{
+  typedef typename boost::graph_traits<Graph>::vertex_descriptor VertexId;
+  typedef typename boost::graph_traits<Graph>::edge_iterator EdgeIterator;
+
+  vtkSmartPointer<vtkPolyData> poly_data = vtkSmartPointer<vtkPolyData>::New ();
+  vtkSmartPointer<vtkPLYReader> ply_reader = vtkSmartPointer<vtkPLYReader>::New ();
+  ply_reader->SetFileName (filename.c_str ());
+  ply_reader->Update ();
+  poly_data = ply_reader->GetOutput ();
+
+  size_t num_points = poly_data->GetNumberOfPoints ();
+
+  // First get the xyz information
+  graph = Graph (num_points);
+  for (VertexId i = 0; i < num_points; i++)
+  {
+    double point_xyz[3];
+    poly_data->GetPoint (i, &point_xyz[0]);
+    graph[i].getVector3fMap () = Eigen::Vector3f (point_xyz[0], point_xyz[1], point_xyz[2]);
+  }
+
+  // Then the color information, if any
+  vtkUnsignedCharArray* poly_colors = NULL;
+  if (poly_data->GetPointData() != NULL)
+    poly_colors = vtkUnsignedCharArray::SafeDownCast (poly_data->GetPointData ()->GetScalars ("RGB"));
+  if (poly_colors && (poly_colors->GetNumberOfComponents () == 3))
+  {
+    for (VertexId i = 0; i < num_points; i++)
+    {
+      uint8_t color[3];
+      poly_colors->GetTupleValue (i, color);
+      graph[i].getBGRVector3cMap () << color[2], color[1], color[0];
+    }
+  }
+
+  // Now handle the polygons
+  vtkIdType* cell_points;
+  vtkIdType num_cell_points;
+  vtkCellArray* mesh_polygons = poly_data->GetPolys ();
+  mesh_polygons->InitTraversal ();
+  int id_poly = 0;
+  while (mesh_polygons->GetNextCell (num_cell_points, cell_points))
+  {
+    VertexId i1 = cell_points[0];
+    VertexId i2 = cell_points[1];
+    VertexId i3 = cell_points[2];
+    const Eigen::Vector3f& p1 = graph[i1].getVector3fMap ();
+    const Eigen::Vector3f& p2 = graph[i2].getVector3fMap ();
+    const Eigen::Vector3f& p3 = graph[i3].getVector3fMap ();
+
+    Eigen::Vector3f normal = (p2 - p1).cross (p3 - p1);
+    normal.normalize ();
+
+    graph[i1].getNormalVector3fMap () += normal;
+    graph[i2].getNormalVector3fMap () += normal;
+    graph[i3].getNormalVector3fMap () += normal;
+
+    if (!boost::edge (i1, i2, graph).second)
+      boost::add_edge (i1, i2, graph);
+    if (!boost::edge (i2, i3, graph).second)
+      boost::add_edge (i2, i3, graph);
+    if (!boost::edge (i3, i1, graph).second)
+      boost::add_edge (i3, i1, graph);
+    ++id_poly;
+  }
+
+  for (const auto& vertex : as_range (boost::vertices (graph)))
+    graph[vertex].getNormalVector3fMap ().normalize ();
+
+  EdgeIterator ei, ee;
+  for (boost::tie (ei, ee) = boost::edges (graph); ei != ee; ++ei)
+  {
+    const VertexId& i1 = boost::source (*ei, graph);
+    const VertexId& i2 = boost::target (*ei, graph);
+    const Eigen::Vector3f& p = graph[i1].getVector3fMap ();
+    const Eigen::Vector3f& q = graph[i2].getVector3fMap ();
+    const Eigen::Vector3f& np = graph[i1].getNormalVector3fMap ();
+    const Eigen::Vector3f& nq = graph[i2].getNormalVector3fMap ();
+    Eigen::Vector3f x = p - q;
+    float d1 = nq.dot (x);
+    float d2 = np.dot (-x);
+    graph[i1].curvature += d1;
+    graph[i2].curvature += d2;
+  }
+
+  for (const auto& vertex : as_range (boost::vertices (graph)))
+    graph[vertex].curvature /= boost::out_degree (vertex, graph) * 0.001;
+}
 
 #endif /* CONVERSIONS_H */
 

@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
+ *  Copyright (c) 2014-, Open Perception, Inc.
  *
  *  All rights reserved.
  *
@@ -34,65 +35,55 @@
  *
  */
 
-#ifndef PCL_GRAPH_WEIGHT_COMPUTERS_DROPPABLE_COMPUTER_H
-#define PCL_GRAPH_WEIGHT_COMPUTERS_DROPPABLE_COMPUTER_H
+#ifndef PCL_GRAPH_UTILS_H
+#define PCL_GRAPH_UTILS_H
 
-#include <boost/mpl/apply.hpp>
+#include <boost/mpl/has_xxx.hpp>
 
-namespace pcl { namespace graph { namespace weight {
-
-template <typename Computer>
-struct droppable_computer
-  : Computer
+namespace pcl
 {
 
-  typedef boost::mpl::true_ is_droppable;
-  typedef typename Computer::point_type point_type;
-
-  template <typename Args>
-  droppable_computer (const Args& args)
-  : Computer (args)
+  namespace graph
   {
-  }
 
-  std::string to_str () const
-  {
-    return "{droppable_computer} << " + Computer::to_str ();
-  }
-
-};
-
-namespace tag
-{
-
-  template <typename Term>
-  struct drop_if_convex
-    : as_term<Term>::type
-  {
-    typedef typename as_term<Term>::type term_type;
-    struct impl
+    namespace detail
     {
-      template <typename Point>
-      struct apply
+      // Create a meta-function that checks if a type has "graph_type" member
+      // typedef. This will be used to distinguish between boost::subgraph (does
+      // have), and normal graph types (do not have).
+      BOOST_MPL_HAS_XXX_TRAIT_NAMED_DEF(has_root_graph, graph_type, false)
+    }
+
+    /** remove_edge_if structure is an "extended" version of,
+      * boost::remove_edge_if that incorporates a workaround to allow edge
+      * removal from both plain graphs and subgraphs.
+      *
+      * Plain graphs should be passed to boost::remove_edge_if as is, whereas
+      * member field `m_graph` should be used in place of the subgraphs
+      * (otherwise expect segfaults). */
+    template <typename Graph, typename Enable = void>
+    struct remove_edge_if
+    {
+      template <typename Predicate> void
+      operator () (const Predicate& predicate, Graph& graph) const
       {
-        typedef
-          droppable_computer<
-            typename boost::mpl::apply<typename term_type::impl, Point>::type
-          >
-        type;
-      };
+        boost::remove_edge_if (predicate, graph);
+      }
     };
-  };
 
-} // namespace tag
+    template <typename Graph>
+    struct remove_edge_if<Graph, typename boost::enable_if<detail::has_root_graph<Graph> >::type>
+    {
+      template <typename Predicate> void
+      operator () (const Predicate& predicate, Graph& graph) const
+      {
+        boost::remove_edge_if (predicate, graph.m_graph);
+      }
+    };
 
-template <typename Term>
-struct term_of<tag::drop_if_convex<Term> >
-  : term_of<Term>
-{
-};
+  }
 
-} } } // namespace pcl::graph::weight
+}
 
-#endif /* PCL_GRAPH_WEIGHT_COMPUTERS_DROPPABLE_COMPUTER_H */
+#endif /* PCL_GRAPH_UTILS_H */
 

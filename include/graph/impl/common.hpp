@@ -78,10 +78,25 @@ pcl::graph::computeNormalsAndCurvatures (Graph& graph, bool neighborhood_1ring)
     Eigen::Vector4f normal;
     float curvature;
     pcl::computePointNormal (*cloud, neighbors, normal, curvature);
-
-    pcl::flipNormalTowardsViewpoint (graph[vertex], 0.0f, 0.0f, 0.0f, normal);
     normal[3] = 0;
     normal.normalize ();
+
+    // Re-orient normals. If the graph already has normals, then make sure that
+    // the new normals are codirectional with them. Otherwise make sure that they
+    // point towards origin.
+    if (pcl_isfinite (graph[vertex].data_n[0]) &&
+        pcl_isfinite (graph[vertex].data_n[1]) &&
+        pcl_isfinite (graph[vertex].data_n[2]) &&
+        pcl_isfinite (graph[vertex].data_n[3]) &&
+        graph[vertex].getNormalVector4fMap ().any ())
+    {
+      if (graph[vertex].getNormalVector4fMap ().dot (normal) < 0)
+        normal *= -1;
+    }
+    else
+    {
+      pcl::flipNormalTowardsViewpoint (graph[vertex], 0.0f, 0.0f, 0.0f, normal);
+    }
     graph[vertex].getNormalVector4fMap () = normal;
     graph[vertex].curvature = std::isnan (curvature) ? 0.0f : curvature;
   }
@@ -113,7 +128,7 @@ pcl::graph::computeSignedCurvatures (Graph& graph)
   }
 
   for (VertexId vertex = 0; vertex < boost::num_vertices (graph); ++vertex)
-    graph[vertex].curvature = std::copysign (graph[vertex].curvature, convexities[vertex]);
+    graph[vertex].curvature = copysign (graph[vertex].curvature, convexities[vertex]);
 }
 
 template <typename Graph> size_t
@@ -131,6 +146,40 @@ pcl::graph::createSubgraphsFromConnectedComponents (Graph& graph,
   for (VertexId v = 0; v < boost::num_vertices (graph); ++v)
     boost::add_vertex (graph.local_to_global (v), subgraphs.at (component[v]).get ());
   return num_components;
+}
+
+template <typename Graph, typename ColorMap> size_t
+pcl::graph::createSubgraphsFromColorMap (Graph& graph,
+                                         ColorMap color_map,
+                                         std::vector<boost::reference_wrapper<Graph> >& subgraphs)
+{
+  typedef typename Graph::vertex_descriptor VertexId;
+  typedef typename boost::reference_wrapper<Graph> GraphRef;
+  typedef typename boost::property_traits<ColorMap>::value_type Color;
+  typedef std::map<Color, GraphRef> SubgraphMap;
+  typedef typename SubgraphMap::iterator SubgraphMapIterator;
+
+  SubgraphMap subgraph_map;
+  for (VertexId v = 0; v < boost::num_vertices (graph); ++v)
+  {
+    SubgraphMapIterator itr = subgraph_map.find (color_map[v]);
+    if (itr == subgraph_map.end ())
+    {
+      GraphRef subgraph (graph.create_subgraph ());
+      boost::add_vertex (graph.local_to_global (v), subgraph.get ());
+      subgraph_map.insert (std::make_pair (color_map[v], subgraph));
+    }
+    else
+    {
+      boost::add_vertex (graph.local_to_global (v), itr->second.get ());
+    }
+  }
+
+  subgraphs.clear ();
+  for (SubgraphMapIterator itr = subgraph_map.begin (); itr != subgraph_map.end (); ++itr)
+    subgraphs.push_back (itr->second);
+
+  return subgraphs.size ();
 }
 
 template <typename Graph> void

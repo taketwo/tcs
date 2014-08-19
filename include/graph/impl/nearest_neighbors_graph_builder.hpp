@@ -46,12 +46,12 @@
 
 #include "graph/nearest_neighbors_graph_builder.h"
 
-template <typename PointT, typename Graph> void
-pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph>::compute (Graph& graph)
+template <typename PointT, typename GraphT> void
+pcl::graph::NearestNeighborsGraphBuilder<PointT, GraphT>::compute (GraphT& graph)
 {
   if (!initCompute ())
   {
-    graph = Graph ();
+    graph = GraphT ();
     deinitCompute ();
     return;
   }
@@ -71,22 +71,22 @@ pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph>::compute (Graph& graph)
   // copied over from the original point cloud.
   typename pcl::PointCloud<PointOutT>::Ptr cloud (new pcl::PointCloud<PointOutT>);
   pcl::copyPointCloud (*input_, *indices_, *cloud);
-  graph = Graph (cloud);
+  graph = GraphT (cloud);
 
   // In case a search method has not been given, initialize it using defaults
   if (!search_)
   {
-    // For organized datasets, use an OrganizedDataIndex
+    // For organized datasets, use OrganizedNeighbor
     if (cloud->isOrganized ())
       search_.reset (new pcl::search::OrganizedNeighbor<PointOutT>);
-    // For unorganized data, use a KdTree
+    // For unorganized data, use KdTree
     else
       search_.reset (new pcl::search::KdTree<PointOutT>);
   }
 
   // Establish edges with nearest neighbors.
-  std::vector<int> neighbors (num_neighbors_);
-  std::vector<float> distances (num_neighbors_);
+  std::vector<int> neighbors (num_neighbors_ + 1);
+  std::vector<float> distances (num_neighbors_ + 1);
   search_->setInputCloud (cloud);
   for (size_t i = 0; i < cloud->size (); ++i)
   {
@@ -97,16 +97,12 @@ pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph>::compute (Graph& graph)
       if (!boost::edge (i, neighbors[j], graph).second)
         boost::add_edge (i, neighbors[j], graph);
   }
-}
 
-template <typename PointT, typename Graph> void
-pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph>::getPointToVertexMap (std::vector<VertexId>& indices)
-{
-  indices.clear ();
-  indices.resize (input_->size (), std::numeric_limits<VertexId>::max ());
+  // Create point to vertex map
+  point_to_vertex_map_.resize (input_->size (), std::numeric_limits<VertexId>::max ());
   VertexId v = 0;
   for (size_t i = 0; i < indices_->size (); ++i)
-    indices[indices_->operator[] (i)] = v++;
+    point_to_vertex_map_[indices_->operator[] (i)] = v++;
 }
 
 #endif /* PCL_GRAPH_IMPL_NEAREST_NEIGHBORS_GRAPH_BUILDER_HPP */

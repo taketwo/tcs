@@ -56,7 +56,7 @@ typedef typename PointCloud::ConstPtr PointCloudConstPtr;
 typedef pcl::graph::point_cloud_graph<PointT,
                                       boost::vecS,
                                       boost::undirectedS,
-                                      boost::no_property,
+                                      boost::property<boost::vertex_color_t, uint32_t>,
                                       boost::property<boost::edge_index_t, float> > Graph;
 typedef typename Graph::vertex_descriptor VertexId;
 typedef boost::subgraph<Graph> Subgraph;
@@ -209,24 +209,79 @@ TEST (GraphCommon, CreateSubgraphsFromConnectedComponentsInNonRootSubgraph)
   EXPECT_EQ (3, subgraphs[1].get ().local_to_global (0));
 }
 
-TEST (GraphCommon, CreateSubgraphsFromIndicesSingle)
+TEST (GraphCommon, CreateSubgraphsFromColorMap)
 {
   const size_t N = 100;
   PointCloudPtr cloud = generateRandomPlanarCloud (N);
   Subgraph graph (cloud);
 
-  pcl::PointIndices indices;
+  std::vector<pcl::PointIndices> indices (3);
   for (size_t i = 0; i < N; ++i)
-    if (i % 10)
-      indices.indices.push_back (i);
+    indices[i % 3].indices.push_back (i);
 
   std::vector<SubgraphRef> subgraphs;
   pcl::graph::createSubgraphsFromIndices (graph, indices, subgraphs);
-  ASSERT_EQ (2, subgraphs.size ());
-  ASSERT_EQ (indices.indices.size (), boost::num_vertices (subgraphs[0].get ()));
-  ASSERT_EQ (N - indices.indices.size (), boost::num_vertices (subgraphs[1].get ()));
-  for (size_t i = 0; i < boost::num_vertices (subgraphs[0].get ()); ++i)
-    EXPECT_XYZ_EQ (cloud->at (indices.indices[i]), subgraphs[0].get ()[i]);
+  ASSERT_EQ (indices.size () + 1, subgraphs.size ());
+  ASSERT_EQ (0, boost::num_vertices (subgraphs[3].get ()));
+  for (size_t i = 0; i < indices.size (); ++i)
+  {
+    ASSERT_EQ (indices[i].indices.size (), boost::num_vertices (subgraphs[i].get ()));
+    for (size_t j = 0; j < boost::num_vertices (subgraphs[i].get ()); ++j)
+      EXPECT_XYZ_EQ (cloud->at (indices[i].indices[j]), subgraphs[i].get ()[j]);
+  }
+}
+
+TEST (GraphCommon, CreateSubgraphsFromIndicesSingle)
+{
+  const size_t N = 100;
+  PointCloudPtr cloud = generateRandomPlanarCloud (N);
+  Subgraph graph (cloud);
+  std::vector<SubgraphRef> subgraphs;
+
+  boost::property_map<Graph, boost::vertex_color_t>::type colors;
+
+  // All colors are unique
+  {
+    for (VertexId i = 0; i < N; ++i)
+      boost::put (boost::vertex_color, graph, i, i);
+    size_t n = pcl::graph::createSubgraphsFromColorMap (graph,
+                                                        boost::get (boost::vertex_color, graph),
+                                                        subgraphs);
+    ASSERT_EQ (N, n);
+    ASSERT_EQ (N, subgraphs.size ());
+    for (size_t i = 0; i < boost::num_vertices (subgraphs[0].get ()); ++i)
+    {
+      ASSERT_EQ (1, boost::num_vertices (subgraphs[i].get ()));
+      EXPECT_XYZ_EQ (cloud->at (i), subgraphs[i].get ()[static_cast<VertexId> (0)]);
+    }
+  }
+
+  // All colors are the same
+  {
+    for (VertexId i = 0; i < N; ++i)
+      boost::put (boost::vertex_color, graph, i, 1);
+    size_t n = pcl::graph::createSubgraphsFromColorMap (graph,
+                                                        boost::get (boost::vertex_color, graph),
+                                                        subgraphs);
+    ASSERT_EQ (1, n);
+    ASSERT_EQ (1, subgraphs.size ());
+    ASSERT_EQ (N, boost::num_vertices (subgraphs[0].get ()));
+  }
+
+  // Reordering in the order of increasing color
+  {
+    boost::put (boost::vertex_color, graph, 0, 2);
+    boost::put (boost::vertex_color, graph, N - 1, 0);
+    // ... and the rest remains ones from the previous test
+    size_t n = pcl::graph::createSubgraphsFromColorMap (graph,
+                                                        boost::get (boost::vertex_color, graph),
+                                                        subgraphs);
+    ASSERT_EQ (3, n);
+    ASSERT_EQ (3, subgraphs.size ());
+    ASSERT_EQ (N - 2, boost::num_vertices (subgraphs[1].get ()));
+    EXPECT_XYZ_EQ (cloud->at (0), subgraphs[2].get ()[static_cast<VertexId> (0)]);
+    EXPECT_XYZ_EQ (cloud->at (N - 1), subgraphs[0].get ()[static_cast<VertexId> (0)]);
+  }
 }
 
 TEST (GraphCommon, CreateSubgraphsFromIndicesVector)

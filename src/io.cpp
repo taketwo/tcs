@@ -12,18 +12,36 @@
 
 template <typename PointT> bool
 load (const std::string& filename,
-      typename pcl::PointCloud<PointT>::Ptr& cloud,
-      typename pcl::PointCloud<pcl::Normal>::Ptr normals)
+      typename pcl::PointCloud<PointT>::Ptr cloud,
+      pcl::PointCloud<pcl::Normal>::Ptr normals)
 {
+  if (cloud)
+    cloud->clear ();
+  else
+    cloud.reset (new pcl::PointCloud<PointT>);
+
+  if (normals)
+    normals->clear ();
+  else
+    normals.reset (new pcl::PointCloud<pcl::Normal>);
+
   pcl::console::print_highlight ("Loading file \"%s\"... ", filename.c_str ());
-  cloud.reset (new pcl::PointCloud<PointT>);
-  normals.reset (new pcl::PointCloud<pcl::Normal>);
   if (boost::algorithm::ends_with (filename, ".pcd"))
   {
-    if (pcl::io::loadPCDFile<PointT> (filename, *cloud))
+    pcl::PCLPointCloud2 blob;
+    if (pcl::io::loadPCDFile (filename, blob))
     {
       pcl::console::print_error ("error!\n");
       return false;
+    }
+    pcl::fromPCLPointCloud2 (blob, *cloud);
+    for (const auto& field : blob.fields)
+    {
+      if (field.name == "normal_x")
+      {
+        pcl::fromPCLPointCloud2 (blob, *normals);
+        break;
+      }
     }
   }
   else if (boost::algorithm::ends_with (filename, ".ply"))
@@ -36,7 +54,13 @@ load (const std::string& filename,
     }
     meshToPointsAndNormals<PointT> (mesh, cloud, normals);
   }
-  pcl::console::print_info ("%zu points.\n", cloud->size ());
+
+  size_t finite = 0;
+  for (const auto& pt : *cloud)
+    if (pcl::isFinite (pt))
+      ++finite;
+
+  pcl::console::print_info ("%zu points (%zu finite).\n", cloud->size (), finite);
   return true;
 }
 
@@ -94,17 +118,29 @@ loadSparseMatrix (const std::string& filename,
 template bool
 load <pcl::PointXYZ>
 (const std::string& filename,
- typename pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
- typename pcl::PointCloud<pcl::Normal>::Ptr normals);
+ typename pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+ pcl::PointCloud<pcl::Normal>::Ptr normals);
+
+template bool
+load <pcl::PointXYZL>
+(const std::string& filename,
+ typename pcl::PointCloud<pcl::PointXYZL>::Ptr cloud,
+ pcl::PointCloud<pcl::Normal>::Ptr normals);
 
 template bool
 load <pcl::PointXYZRGB>
 (const std::string& filename,
- typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud,
- typename pcl::PointCloud<pcl::Normal>::Ptr normals);
+ typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+ pcl::PointCloud<pcl::Normal>::Ptr normals);
+
+template bool
+load <pcl::PointXYZRGBNormal>
+(const std::string& filename,
+ typename pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud,
+ pcl::PointCloud<pcl::Normal>::Ptr normals);
 
 template bool
 load <pcl::PointXYZRGBA>
 (const std::string& filename,
- typename pcl::PointCloud<pcl::PointXYZRGBA>::Ptr& cloud,
- typename pcl::PointCloud<pcl::Normal>::Ptr normals);
+ typename pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud,
+ pcl::PointCloud<pcl::Normal>::Ptr normals);
