@@ -24,13 +24,17 @@ add_definitions(-fpermissive)
 set(DOXYFILE_LATEX false)
 include(UseDoxygen)
 
+# PCL
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
+# TViewer
 add_subdirectory(third-party/tviewer)
 include_directories(${TVIEWER_INCLUDE_DIRS})
+add_definitions(${TVIEWER_DEFINITIONS})
 
+# Hungarian
 add_subdirectory(src/hungarian)
 
 add_library(random_walker_segmentation
