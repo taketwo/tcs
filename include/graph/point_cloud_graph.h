@@ -528,6 +528,18 @@ namespace pcl
             m_point_cloud->erase (m_point_cloud->begin () + vertex);
         }
 
+        /* This second version of `removing_vertex` is to account for the
+         * change introduced in Boost 1.55, which added a second parameter to
+         * this function. The type of the second parameter is unimportant and
+         * likely is not present in earlier versions of Boost, hence generic
+         * templated version. */
+
+        template <typename T> void
+        removing_vertex (vertex_descriptor vertex, T)
+        {
+          removing_vertex (vertex);
+        }
+
         /** \name Access to bundled vertex/edge properties.
           *
           * The `operators[]`'s in this group may be used to access the data
