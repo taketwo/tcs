@@ -11,6 +11,9 @@ load (const std::string& filename,
       typename pcl::PointCloud<PointT>::Ptr cloud,
       pcl::PointCloud<pcl::Normal>::Ptr normals = pcl::PointCloud<pcl::Normal>::Ptr ());
 
+bool
+hasColor (const std::string& filename);
+
 template <typename Graph> bool
 saveGraph (const std::string& filename,
            const Graph& graph);

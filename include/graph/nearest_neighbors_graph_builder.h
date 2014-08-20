@@ -78,6 +78,11 @@ namespace pcl
         using PCLBase<PointT>::fake_indices_;
         using GraphBuilder<PointT, GraphT>::point_to_vertex_map_;
 
+      private:
+
+        /// Search types that can be used to find nearest neighbors.
+        enum SearchType { KNN, RADIUS };
+
       public:
 
         using typename GraphBuilder<PointT, GraphT>::PointInT;
@@ -89,17 +94,19 @@ namespace pcl
 
         /** Constructor.
           *
-          * \param[in] num_neighbors number of neighbors to find when building
-          * a graph (default: \c 14) */
-        NearestNeighborsGraphBuilder (size_t num_neighbors = 14)
-        : num_neighbors_ (num_neighbors)
+          * By default kNN search with 10 neighbors will be used. Use functions
+          * setNumberOfNeighbors() or setRadius() to change search type and/or
+          * adjust its parameters. */
+        NearestNeighborsGraphBuilder ()
+        : num_neighbors_ (10)
+        , search_type_ (KNN)
         {
         }
 
         virtual void
         compute (GraphT& graph);
 
-        /** Set search method that will be used for finding K nearest neighbors
+        /** Set search method that will be used for finding nearest neighbors
           * when building a graph. */
         inline void
         setSearchMethod (const SearchPtr& search)
@@ -115,18 +122,34 @@ namespace pcl
           return (search_);
         }
 
-        /** Set the number of neighbors to find when building a graph. */
+        /** Use k-nearest neighbors search to establish edge set of a graph. */
+        inline void
+        useNearestKSearch ()
+        {
+          search_type_ = KNN;
+        }
+
+        /** Use radius search to establish edge set of a graph. */
+        inline void
+        useRadiusSearch ()
+        {
+          search_type_ = RADIUS;
+        }
+
+        /** Set the (maximum) number of neighbors to find when building a
+          * graph. */
         inline void
         setNumberOfNeighbors (size_t num_neighbors)
         {
           num_neighbors_ = num_neighbors;
         }
 
-        /** Returns the number of neighbors to find when building a graph. */
-        inline size_t
-        getNumberOfNeighbors () const
+        /** Set the sphere radius when building a graph with radius search
+          * type. */
+        inline void
+        setRadius (double radius)
         {
-          return (num_neighbors_);
+          radius_ = radius;
         }
 
       private:
@@ -137,6 +160,12 @@ namespace pcl
 
         /// The number of neighbors to find when building a graph.
         size_t num_neighbors_;
+
+        /// Sphere radius for radius search.
+        double radius_;
+
+        /// Search type (knn or radius).
+        SearchType search_type_;
 
     };
 

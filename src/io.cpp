@@ -64,6 +64,19 @@ load (const std::string& filename,
   return true;
 }
 
+bool
+hasColor (const std::string& filename)
+{
+  pcl::PCLPointCloud2 cloud2;
+  pcl::PCDReader reader;
+  reader.readHeader (filename, cloud2);
+  for (size_t i = 0; i < cloud2.fields.size (); ++i)
+    if (cloud2.fields[i].name == "rgb" ||
+        cloud2.fields[i].name == "rgba")
+      return true;
+  return false;
+}
+
 void
 saveSparseMatrix (const std::string& filename,
                   const Eigen::SparseMatrix<float>& M)

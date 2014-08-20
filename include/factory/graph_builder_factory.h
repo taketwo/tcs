@@ -19,15 +19,18 @@ public:
 
   GraphBuilderFactory ()
   : Factory ("Graph Builder")
-  , builder_ ("builder type", "--builder", { { "vg", "VOXEL GRID" },
-                                             { "nn", "NEAREST NEIGHBORS"} })
+  , builder_ ("builder type", "--builder", { { "vg",  "VOXEL GRID"              }
+                                           , { "nnk", "NEAREST NEIGHBORS KNN"   }
+                                           , { "nnr", "NEAREST NEIGHBORS RADIUS"} })
   , voxel_resolution_ ("voxel resolution", "-v", 0.006f)
   , number_of_neighbors_ ("number of neighbors", "--nn", 14)
+  , radius_ ("sphere radius", "--radius", 0.006f)
   , no_transform_ ("no transform", "-nt")
   {
     add (&builder_);
     add (&voxel_resolution_);
     add (&number_of_neighbors_);
+    add (&radius_);
     add (&no_transform_);
   }
 
@@ -37,9 +40,23 @@ public:
     parse (argc, argv);
     typename GraphBuilderT::Ptr gb;
     if (builder_.value == "vg")
+    {
       gb.reset (new pcl::graph::VoxelGridGraphBuilder<PointT, GraphT> (voxel_resolution_));
+    }
+    else if (builder_.value == "nnk")
+    {
+      auto nngb = new pcl::graph::NearestNeighborsGraphBuilder<PointT, GraphT>;
+      nngb->setNumberOfNeighbors (number_of_neighbors_);
+      nngb->useNearestKSearch ();
+      gb.reset (nngb);
+    }
     else
-      gb.reset (new pcl::graph::NearestNeighborsGraphBuilder<PointT, GraphT> (number_of_neighbors_));
+    {
+      auto nngb = new pcl::graph::NearestNeighborsGraphBuilder<PointT, GraphT>;
+      nngb->setRadius (radius_);
+      nngb->useRadiusSearch ();
+      gb.reset (nngb);
+    }
     return gb;
   }
 
@@ -48,6 +65,7 @@ private:
   EnumOption builder_;
   NumericOption<float> voxel_resolution_;
   NumericOption<int> number_of_neighbors_;
+  NumericOption<float> radius_;
   BoolOption no_transform_;
 
 };

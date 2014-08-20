@@ -90,9 +90,21 @@ pcl::graph::NearestNeighborsGraphBuilder<PointT, GraphT>::compute (GraphT& graph
   search_->setInputCloud (cloud);
   for (size_t i = 0; i < cloud->size (); ++i)
   {
-    // Search for num_neighbors_ + 1 because the first neighbor output by KdTree
-    // is always the query point itself.
-    search_->nearestKSearch (i, num_neighbors_ + 1, neighbors, distances);
+    switch (search_type_)
+    {
+      case KNN:
+        {
+          // Search for num_neighbors_ + 1 because the first neighbor output by KdTree
+          // is always the query point itself.
+          search_->nearestKSearch (i, num_neighbors_ + 1, neighbors, distances);
+          break;
+        }
+      case RADIUS:
+        {
+          search_->radiusSearch (i, radius_, neighbors, distances, num_neighbors_ + 1);
+          break;
+        }
+    }
     for (size_t j = 1; j < neighbors.size (); ++j)
       if (!boost::edge (i, neighbors[j], graph).second)
         boost::add_edge (i, neighbors[j], graph);

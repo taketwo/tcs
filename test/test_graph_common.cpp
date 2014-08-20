@@ -139,7 +139,8 @@ TEST (GraphCommon, ComputeSignedCurvature)
     }
   }
 
-  pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph> gb (6);
+  pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph> gb;
+  gb.setNumberOfNeighbors (6);
   gb.setInputCloud (cloud);
   Graph graph;
   gb.compute (graph);
@@ -163,7 +164,8 @@ TEST (GraphCommon, ComputeSignedCurvature)
 TEST (GraphCommon, CreateSubgraphsFromConnectedComponents)
 {
   const size_t N = 100;
-  pcl::graph::NearestNeighborsGraphBuilder<PointT, Subgraph> gb (0);
+  pcl::graph::NearestNeighborsGraphBuilder<PointT, Subgraph> gb;
+  gb.setNumberOfNeighbors (0);
   gb.setInputCloud (generateRandomPlanarCloud (N));
   // No edges, expect as many components as there are vertices
   {

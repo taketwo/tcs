@@ -62,6 +62,8 @@ int main (int argc, char ** argv)
   if (!load<PointT> (argv[1], cloud, normals))
     return (1);
 
+  bool input_has_color = hasColor (argv[1]);
+
   bool option_save_seeds = pcl::console::find_switch (argc, argv, "--save-seeds");
   bool option_load_seeds = pcl::console::find_switch (argc, argv, "--load-seeds");
 
@@ -148,7 +150,9 @@ int main (int argc, char ** argv)
   ( CreatePointCloudObject<pcl::PointXYZRGBA> ("vertices", "v")
   . description                               ("Graph vertices")
   . pointSize                                 (6)
-  . data                                      (gv.getVerticesCloudColorsNatural ())
+  . data                                      (input_has_color
+                                              ? gv.getVerticesCloudColorsNatural ()
+                                              : gv.getVerticesCloudColorsFromMapRandom ())
   );
 
   viewer->add

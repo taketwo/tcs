@@ -111,6 +111,7 @@ class GraphBuilderTest : public ::testing::Test
 
 };
 
+#if 0
 class NearestNeighborsGraphBuilderTest : public GraphBuilderTest
 {
 
@@ -306,7 +307,7 @@ TEST_F (NearestNeighborsGraphBuilderTest, ComputeWithSubgraph)
   for (Graph::vertex_descriptor i = 0; i < boost::num_vertices (graph); ++i)
     EXPECT_XYZ_EQ (grid2x3->at (i), graph[i]);
 }
-
+#endif
 class VoxelGridGraphBuilderTest : public GraphBuilderTest
 {
 
