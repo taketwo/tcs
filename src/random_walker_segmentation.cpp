@@ -41,7 +41,7 @@
 #include <pcl/point_types.h>
 // Instantiations of specific point types
 #ifdef PCL_ONLY_CORE_POINT_TYPES
-  PCL_INSTANTIATE (RandomWalkerSegmentation, (pcl::PointXYZ)(pcl::PointXYZRGBA))
+  PCL_INSTANTIATE (RandomWalkerSegmentation, (pcl::PointXYZ)(pcl::PointXYZRGB)(pcl::PointXYZRGBA))
 #else
   PCL_INSTANTIATE (RandomWalkerSegmentation, PCL_XYZ_POINT_TYPES)
 #endif /* PCL_ONLY_CORE_POINT_TYPES */

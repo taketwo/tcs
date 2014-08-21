@@ -3,6 +3,8 @@ project(TCS)
 find_package(PCL 1.7.2 REQUIRED)
 set(CMAKE_BUILD_TYPE "Release")
 
+option(WITH_QT_GUI "Build Qt GUI application." ON)
+
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/" ${CMAKE_MODULE_PATH})
 
 # set the default path for built executables to the "bin" directory
@@ -13,6 +15,11 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 add_definitions(-std=c++11)
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  add_definitions(-fcolor-diagnostics)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif ()
 
 #...: enable all but certain warnings
 add_definitions(-Wall)
@@ -81,3 +88,7 @@ target_link_libraries(segmentation_evaluation
   ${TVIEWER_LIBRARIES}
   hungarian
 )
+
+if (WITH_QT_GUI)
+  add_subdirectory(gui)
+endif()
