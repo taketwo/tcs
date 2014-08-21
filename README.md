@@ -103,10 +103,3 @@ Generate the project documentation with the following command:
     
 Alternatively, the documentation could be accessed online at the
 [GitHub pages](http://taketwo.github.io/tcs/index.html) of this repository.
-
-Unit tests
-==========
-
-Compile and run unit tests with the following command:
-
-    make tests

@@ -81,6 +81,3 @@ target_link_libraries(segmentation_evaluation
   ${TVIEWER_LIBRARIES}
   hungarian
 )
-
-enable_testing()
-add_subdirectory(test)
