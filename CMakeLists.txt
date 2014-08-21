@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 project(TCS)
-find_package(PCL 1.7.1 REQUIRED)
+find_package(PCL 1.7.2 REQUIRED)
 set(CMAKE_BUILD_TYPE "Release")
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/" ${CMAKE_MODULE_PATH})
