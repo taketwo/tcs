@@ -47,6 +47,9 @@ class MainWindow : public QMainWindow
     onButtonUpdateNeighborsClicked ();
 
     void
+    onButtonUpdateRadiusClicked ();
+
+    void
     buttonNewLabelClicked ();
 
     void
@@ -114,6 +117,9 @@ class MainWindow : public QMainWindow
 
     void
     displaySeeds ();
+
+    void
+    buildGraph (pcl::graph::GraphBuilder<PointT, Graph>::Ptr graph_builder);
 
     void
     computeEdgeWeights ();

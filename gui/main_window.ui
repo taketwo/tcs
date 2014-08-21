@@ -114,6 +114,49 @@
        </layout>
       </item>
       <item>
+       <widget class="QLabel" name="label_radius">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Radius</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_7">
+        <item>
+         <widget class="QDoubleSpinBox" name="spinbox_radius">
+          <property name="decimals">
+           <number>3</number>
+          </property>
+          <property name="minimum">
+           <double>0.001000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>10.000000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.001000000000000</double>
+          </property>
+          <property name="value">
+           <double>0.010000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="button_update_radius">
+          <property name="text">
+           <string>Update</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
        <widget class="QLabel" name="label_edge_weights">
         <property name="text">
          <string>Edge weights</string>
@@ -367,7 +410,7 @@
      <x>0</x>
      <y>0</y>
      <width>994</width>
-     <height>19</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_file">
@@ -616,6 +659,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>button_update_radius</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>onButtonUpdateRadiusClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>242</x>
+     <y>188</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>496</x>
+     <y>334</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>buttonNewLabelClicked()</slot>
@@ -629,5 +688,6 @@
   <slot>onActionSaveSeedsTriggered()</slot>
   <slot>onButtonUpdateVoxelsClicked()</slot>
   <slot>onButtonUpdateNeighborsClicked()</slot>
+  <slot>onButtonUpdateRadiusClicked()</slot>
  </slots>
 </ui>

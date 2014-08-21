@@ -1,5 +1,7 @@
 #include <ctime>
 
+#include <boost/format.hpp>
+
 #include <QModelIndex>
 
 #include <vtkLine.h>
@@ -87,9 +89,12 @@ void
 MainWindow::onButtonUpdateVoxelsClicked ()
 {
   double r = ui_->spinbox_voxel_resolution->value ();
-  pcl::graph::VoxelGridGraphBuilder<PointT, Graph> graph_builder (r);
-  graph_builder.setInputCloud (cloud_);
-  graph_builder.compute (*graph_);
+
+  typedef pcl::graph::VoxelGridGraphBuilder<PointT, Graph> Builder;
+  Builder* graph_builder = new Builder (r);
+  graph_builder->setInputCloud (cloud_);
+
+  buildGraph (typename pcl::graph::GraphBuilder<PointT, Graph>::Ptr (graph_builder));
 
   pcl::graph::computeNormalsAndCurvatures (*graph_);
   pcl::graph::computeSignedCurvatures (*graph_);
@@ -103,10 +108,37 @@ void
 MainWindow::onButtonUpdateNeighborsClicked ()
 {
   int n = ui_->spinbox_nearest_neighbors->value ();
-  pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph> graph_builder;
-  graph_builder.setNumberOfNeighbors (n);
-  graph_builder.setInputCloud (cloud_);
-  graph_builder.compute (*graph_);
+
+  typedef pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph> Builder;
+  Builder* graph_builder = new Builder;
+  graph_builder->setNumberOfNeighbors (n);
+  graph_builder->useNearestKSearch ();
+  graph_builder->setInputCloud (cloud_);
+
+  buildGraph (typename pcl::graph::GraphBuilder<PointT, Graph>::Ptr (graph_builder));
+
+  pcl::graph::computeNormalsAndCurvatures (*graph_);
+  pcl::graph::computeSignedCurvatures (*graph_);
+  computeEdgeWeights ();
+
+  displayGraphVertices ();
+  displayGraphEdges ();
+}
+
+void
+MainWindow::onButtonUpdateRadiusClicked ()
+{
+  int n = ui_->spinbox_nearest_neighbors->value ();
+  double r = ui_->spinbox_radius->value ();
+
+  typedef pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph> Builder;
+  Builder* graph_builder = new Builder;
+  graph_builder->setNumberOfNeighbors (n);
+  graph_builder->setRadius (r);
+  graph_builder->useRadiusSearch ();
+  graph_builder->setInputCloud (cloud_);
+
+  buildGraph (typename pcl::graph::GraphBuilder<PointT, Graph>::Ptr (graph_builder));
 
   pcl::graph::computeNormalsAndCurvatures (*graph_);
   pcl::graph::computeSignedCurvatures (*graph_);
@@ -211,6 +243,18 @@ MainWindow::displaySeeds ()
 {
   viewer_->updatePointCloud (seed_selection_->getPointCloudForVisualization (), "seeds");
   ui_->qvtkWidget->update ();
+}
+
+void
+MainWindow::buildGraph (pcl::graph::GraphBuilder<PointT, Graph>::Ptr graph_builder)
+{
+  ui_->status_bar->showMessage ("Building graph...");
+
+  graph_builder->compute (*graph_);
+
+  boost::format fmt ("Built a graph with %i vertices and %i edges");
+  std::string status (boost::str (fmt % boost::num_vertices (*graph_) % boost::num_edges (*graph_)));
+  ui_->status_bar->showMessage (status.c_str ());
 }
 
 void
