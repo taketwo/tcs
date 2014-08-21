@@ -23,6 +23,7 @@ add_executable(gui_random_walker_segmentation
 )
 
 target_link_libraries(gui_random_walker_segmentation
+  io
   random_walker_segmentation
   ${QT_LIBRARIES}
   ${PCL_LIBRARIES}

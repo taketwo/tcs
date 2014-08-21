@@ -20,6 +20,7 @@
 #include "main_window.h"
 #include "ui_main_window.h"
 
+#include "io.h"
 #include "graph/common.h"
 #include "graph/edge_weight_computer.h"
 #include "graph/voxel_grid_graph_builder.h"
@@ -46,6 +47,10 @@ MainWindow::MainWindow (const std::string& filename, QWidget* parent)
   cloud_.reset (new PointCloudT);
   if (pcl::io::loadPCDFile (filename, *cloud_))
     throw std::runtime_error ("failed to load input point cloud");
+
+  if (!hasColor (filename))
+    for (auto& point : *cloud_)
+      point.rgba = 0x00FFFF;
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmp (new pcl::PointCloud<pcl::PointXYZRGB>);
   viewer_->addPointCloud (tmp, "vertices");
