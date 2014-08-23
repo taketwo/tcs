@@ -41,13 +41,7 @@ class MainWindow : public QMainWindow
   public Q_SLOTS:
 
     void
-    onButtonUpdateVoxelsClicked ();
-
-    void
-    onButtonUpdateNeighborsClicked ();
-
-    void
-    onButtonUpdateRadiusClicked ();
+    onButtonUpdateGraphClicked ();
 
     void
     buttonNewLabelClicked ();
@@ -99,6 +93,13 @@ class MainWindow : public QMainWindow
     onActionSaveSeedsTriggered ()
     {
       pcl::io::savePCDFile ("seeds.pcd", *seed_selection_->getSelectedSeeds ());
+    }
+
+    void
+    onActionViewToggled (bool checked)
+    {
+      displayGraphVertices ();
+      displayGraphEdges ();
     }
 
     void

@@ -76,7 +76,7 @@ MainWindow::MainWindow (const std::string& filename, QWidget* parent)
   QModelIndex index = seed_selection_->addNewLabel ();
   ui_->list_labels->selectionModel ()->select (index, QItemSelectionModel::ClearAndSelect);
 
-  onButtonUpdateVoxelsClicked ();
+  onButtonUpdateGraphClicked ();
 }
 
 MainWindow::~MainWindow ()
@@ -91,59 +91,46 @@ MainWindow::seedsChanged ()
 }
 
 void
-MainWindow::onButtonUpdateVoxelsClicked ()
+MainWindow::onButtonUpdateGraphClicked ()
 {
-  double r = ui_->spinbox_voxel_resolution->value ();
+  typename pcl::graph::GraphBuilder<PointT, Graph>::Ptr gb;
 
-  typedef pcl::graph::VoxelGridGraphBuilder<PointT, Graph> Builder;
-  Builder* graph_builder = new Builder (r);
-  graph_builder->setInputCloud (cloud_);
+  switch (ui_->tabs_graph_builder->currentIndex ())
+  {
+    case 0: // Voxel Grid
+      {
+        double r = ui_->spinbox_voxel_resolution->value ();
+        typedef pcl::graph::VoxelGridGraphBuilder<PointT, Graph> Builder;
+        Builder* graph_builder = new Builder (r);
+        gb.reset (graph_builder);
+        break;
+      }
+    case 1: // KNN
+      {
+        int n = ui_->spinbox_nearest_neighbors->value ();
+        typedef pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph> Builder;
+        Builder* graph_builder = new Builder;
+        graph_builder->setNumberOfNeighbors (n);
+        graph_builder->useNearestKSearch ();
+        gb.reset (graph_builder);
+        break;
+      }
+    case 2: // Radius
+      {
+        int n = ui_->spinbox_max_neighbors->value ();
+        double r = ui_->spinbox_radius->value ();
+        typedef pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph> Builder;
+        Builder* graph_builder = new Builder;
+        graph_builder->setNumberOfNeighbors (n);
+        graph_builder->setRadius (r);
+        graph_builder->useRadiusSearch ();
+        gb.reset (graph_builder);
+        break;
+      }
+  }
 
-  buildGraph (typename pcl::graph::GraphBuilder<PointT, Graph>::Ptr (graph_builder));
-
-  pcl::graph::computeNormalsAndCurvatures (*graph_);
-  pcl::graph::computeSignedCurvatures (*graph_);
-  computeEdgeWeights ();
-
-  displayGraphVertices ();
-  displayGraphEdges ();
-}
-
-void
-MainWindow::onButtonUpdateNeighborsClicked ()
-{
-  int n = ui_->spinbox_nearest_neighbors->value ();
-
-  typedef pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph> Builder;
-  Builder* graph_builder = new Builder;
-  graph_builder->setNumberOfNeighbors (n);
-  graph_builder->useNearestKSearch ();
-  graph_builder->setInputCloud (cloud_);
-
-  buildGraph (typename pcl::graph::GraphBuilder<PointT, Graph>::Ptr (graph_builder));
-
-  pcl::graph::computeNormalsAndCurvatures (*graph_);
-  pcl::graph::computeSignedCurvatures (*graph_);
-  computeEdgeWeights ();
-
-  displayGraphVertices ();
-  displayGraphEdges ();
-}
-
-void
-MainWindow::onButtonUpdateRadiusClicked ()
-{
-  int n = ui_->spinbox_nearest_neighbors->value ();
-  double r = ui_->spinbox_radius->value ();
-
-  typedef pcl::graph::NearestNeighborsGraphBuilder<PointT, Graph> Builder;
-  Builder* graph_builder = new Builder;
-  graph_builder->setNumberOfNeighbors (n);
-  graph_builder->setRadius (r);
-  graph_builder->useRadiusSearch ();
-  graph_builder->setInputCloud (cloud_);
-
-  buildGraph (typename pcl::graph::GraphBuilder<PointT, Graph>::Ptr (graph_builder));
+  gb->setInputCloud (cloud_);
+  buildGraph (gb);
 
   pcl::graph::computeNormalsAndCurvatures (*graph_);
   pcl::graph::computeSignedCurvatures (*graph_);
@@ -194,7 +181,7 @@ void
 MainWindow::displayGraphVertices (bool how)
 {
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr vertices (new pcl::PointCloud<pcl::PointXYZRGB>);
-  if (ui_->checkbox_graph_vertices->checkState ())
+  if (ui_->action_graph_vertices->isChecked ())
   {
     pcl::copyPointCloud (*pcl::graph::point_cloud (*graph_), *vertices);
     boost::get (boost::vertex_color, *graph_);
@@ -215,7 +202,7 @@ void
 MainWindow::displayGraphEdges (uint32_t color)
 {
   viewer_->removeShape ("edges");
-  if (ui_->checkbox_graph_edges->checkState ())
+  if (ui_->action_graph_edges->isChecked ())
   {
     vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New ();
     vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New ();
