@@ -125,6 +125,12 @@ class MainWindow : public QMainWindow
     void
     computeEdgeWeights ();
 
+    void
+    saveConfig ();
+
+    void
+    loadConfig ();
+
     Ui::MainWindow* ui_;
 
     pcl::visualization::PCLVisualizer::Ptr viewer_;

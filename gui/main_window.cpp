@@ -1,6 +1,8 @@
 #include <ctime>
 
 #include <boost/format.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <QModelIndex>
 
@@ -76,11 +78,14 @@ MainWindow::MainWindow (const std::string& filename, QWidget* parent)
   QModelIndex index = seed_selection_->addNewLabel ();
   ui_->list_labels->selectionModel ()->select (index, QItemSelectionModel::ClearAndSelect);
 
+  loadConfig ();
+
   onButtonUpdateGraphClicked ();
 }
 
 MainWindow::~MainWindow ()
 {
+  saveConfig ();
   delete ui_;
 }
 
@@ -282,5 +287,69 @@ MainWindow::computeEdgeWeights ()
   computer.setSmallWeightThreshold (1e-5);
   computer.setSmallWeightPolicy (EWC::SMALL_WEIGHT_COERCE_TO_THRESHOLD);
   computer.compute (*graph_);
+}
+
+void
+MainWindow::saveConfig ()
+{
+  using boost::property_tree::ptree;
+  ptree pt;
+
+  pt.put ("GraphBuilder.Type", ui_->tabs_graph_builder->currentIndex ());
+  pt.put ("GraphBuilder.VoxelGrid.Resolution", ui_->spinbox_voxel_resolution->value ());
+  pt.put ("GraphBuilder.KNN.NearestNeighbors", ui_->spinbox_nearest_neighbors->value ());
+  pt.put ("GraphBuilder.Radius.Radius", ui_->spinbox_radius->value ());
+  pt.put ("GraphBuilder.Radius.MaxNeighbors", ui_->spinbox_max_neighbors->value ());
+
+  pt.put ("EdgeWeights.XYZ.Enabled", ui_->checkbox_xyz->checkState ());
+  pt.put ("EdgeWeights.XYZ.Influence", ui_->spinbox_xyz_influence->value ());
+  pt.put ("EdgeWeights.XYZ.OnlyConcave", ui_->checkbox_rgb_only_concave->checkState ());
+  pt.put ("EdgeWeights.Normal.Enabled", ui_->checkbox_normal->checkState ());
+  pt.put ("EdgeWeights.Normal.Influence", ui_->spinbox_normal_influence->value ());
+  pt.put ("EdgeWeights.Normal.OnlyConcave", ui_->checkbox_normal_only_concave->checkState ());
+  pt.put ("EdgeWeights.Curvature.Enabled", ui_->checkbox_curvature->checkState ());
+  pt.put ("EdgeWeights.Curvature.Influence", ui_->spinbox_curvature_influence->value ());
+  pt.put ("EdgeWeights.Curvature.OnlyConcave", ui_->checkbox_curvature_only_concave->checkState ());
+  pt.put ("EdgeWeights.RGB.Enabled", ui_->checkbox_rgb->checkState ());
+  pt.put ("EdgeWeights.RGB.Influence", ui_->spinbox_rgb_influence->value ());
+  pt.put ("EdgeWeights.RGB.OnlyConcave", ui_->checkbox_rgb_only_concave->checkState ());
+
+  write_json ("config.json", pt);
+}
+
+void
+MainWindow::loadConfig ()
+{
+  using boost::property_tree::ptree;
+  ptree pt;
+
+  try
+  {
+    read_json ("config.json", pt);
+  }
+  catch (std::runtime_error& e)
+  {
+    // Cannot load config file, do nothing
+    return;
+  }
+
+  ui_->tabs_graph_builder->setCurrentIndex (pt.get ("GraphBuilder.Type", 0));
+  ui_->spinbox_voxel_resolution->setValue (pt.get ("GraphBuilder.VoxelGrid.Resolution", 0.005));
+  ui_->spinbox_nearest_neighbors->setValue (pt.get ("GraphBuilder.KNN.NearestNeighbors", 15));
+  ui_->spinbox_radius->setValue (pt.get ("GraphBuilder.Radius.Radius", 0.01));
+  ui_->spinbox_max_neighbors->setValue (pt.get ("GraphBuilder.Radius.MaxNeighbors", 10));
+
+  ui_->checkbox_xyz->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.XYZ.Enabled", 2)));
+  ui_->spinbox_xyz_influence->setValue (pt.get ("EdgeWeights.XYZ.Influence", 3.0));
+  ui_->checkbox_rgb_only_concave->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.XYZ.OnlyConcave", 0)));
+  ui_->checkbox_normal->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.Normal.Enabled", 2)));
+  ui_->spinbox_normal_influence->setValue (pt.get ("EdgeWeights.Normal.Influence", 0.01));
+  ui_->checkbox_normal_only_concave->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.Normal.OnlyConcave", 2)));
+  ui_->checkbox_curvature->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.Curvature.Enabled", 2)));
+  ui_->spinbox_curvature_influence->setValue (pt.get ("EdgeWeights.Curvature.Influence", 0.0001));
+  ui_->checkbox_curvature_only_concave->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.Curvature.OnlyConcave", 2)));
+  ui_->checkbox_rgb->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.RGB.Enabled", 2)));
+  ui_->spinbox_rgb_influence->setValue (pt.get ("EdgeWeights.RGB.Influence", 3.0));
+  ui_->checkbox_rgb_only_concave->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.RGB.OnlyConcave", 0)));
 }
 
