@@ -332,6 +332,9 @@ MainWindow::saveConfig ()
   pt.put ("EdgeWeights.RGB.Influence", ui_->spinbox_rgb_influence->value ());
   pt.put ("EdgeWeights.RGB.OnlyConcave", ui_->checkbox_rgb_only_concave->checkState ());
 
+  pt.put ("View.GraphVertices", ui_->action_graph_vertices->isChecked ());
+  pt.put ("View.GraphEdges", ui_->action_graph_edges->isChecked ());
+
   write_json ("config.json", pt);
 }
 
@@ -369,5 +372,8 @@ MainWindow::loadConfig ()
   ui_->checkbox_rgb->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.RGB.Enabled", 2)));
   ui_->spinbox_rgb_influence->setValue (pt.get ("EdgeWeights.RGB.Influence", 3.0));
   ui_->checkbox_rgb_only_concave->setCheckState (Qt::CheckState (pt.get ("EdgeWeights.RGB.OnlyConcave", 0)));
+
+  ui_->action_graph_vertices->setChecked (pt.get ("View.GraphVertices", true));
+  ui_->action_graph_edges->setChecked (pt.get ("View.GraphEdges", false));
 }
 
