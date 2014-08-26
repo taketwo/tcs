@@ -90,6 +90,17 @@ MainWindow::~MainWindow ()
 }
 
 void
+MainWindow::onActionSaveSegmentationTriggered ()
+{
+  pcl::PointCloud<pcl::PointXYZL>::Ptr vertices (new pcl::PointCloud<pcl::PointXYZL>);
+  pcl::copyPointCloud (*pcl::graph::point_cloud (*graph_), *vertices);
+  for (size_t i = 0; i < vertices->size (); ++i)
+    vertices->at (i).label = boost::get (boost::vertex_color, *graph_, i);
+  pcl::io::savePCDFile ("segmentation.pcd", *vertices);
+  ui_->status_bar->showMessage ("Saved segmentation");
+}
+
+void
 MainWindow::seedsChanged ()
 {
   displaySeeds ();
@@ -161,11 +172,18 @@ MainWindow::buttonDeleteLabelClicked ()
 void
 MainWindow::buttonSegmentClicked ()
 {
+  ui_->status_bar->showMessage ("Segmenting graph...");
+
   pcl::segmentation::RandomWalkerSegmentation<pcl::PointXYZRGB> rws;
   rws.setInputGraph (graph_);
   rws.setSeeds (seed_selection_->getSelectedSeeds ());
   std::vector<pcl::PointIndices> clusters;
   rws.segment (clusters);
+
+  boost::format fmt ("Segmented graph into %i clusters");
+  std::string status (boost::str (fmt % (clusters.size () - 1)));
+  ui_->status_bar->showMessage (status.c_str ());
+
   displayGraphVertices (false);
 }
 

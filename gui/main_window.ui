@@ -39,7 +39,7 @@
      <x>0</x>
      <y>0</y>
      <width>994</width>
-     <height>19</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_file">
@@ -51,6 +51,8 @@
     <addaction name="separator"/>
     <addaction name="action_save_seeds"/>
     <addaction name="action_load_seeds"/>
+    <addaction name="separator"/>
+    <addaction name="action_save_segmentation"/>
     <addaction name="separator"/>
     <addaction name="action_exit"/>
    </widget>
@@ -75,7 +77,7 @@
    <property name="minimumSize">
     <size>
      <width>320</width>
-     <height>189</height>
+     <height>212</height>
     </size>
    </property>
    <property name="features">
@@ -236,7 +238,7 @@
             <number>30</number>
            </property>
            <property name="value">
-            <number>15</number>
+            <number>10</number>
            </property>
           </widget>
          </item>
@@ -276,8 +278,8 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>320</width>
-     <height>155</height>
+     <width>327</width>
+     <height>177</height>
     </size>
    </property>
    <property name="features">
@@ -556,6 +558,11 @@
     <string>E</string>
    </property>
   </action>
+  <action name="action_save_segmentation">
+   <property name="text">
+    <string>Save segmentation</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -743,6 +750,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>action_save_segmentation</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>onActionSaveSegmentationTriggered()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>496</x>
+     <y>334</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>buttonNewLabelClicked()</slot>
@@ -755,5 +778,6 @@
   <slot>onActionSaveSeedsTriggered()</slot>
   <slot>onButtonUpdateGraphClicked()</slot>
   <slot>onActionViewToggled(bool)</slot>
+  <slot>onActionSaveSegmentationTriggered()</slot>
  </slots>
 </ui>

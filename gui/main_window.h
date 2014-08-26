@@ -103,6 +103,9 @@ class MainWindow : public QMainWindow
     }
 
     void
+    onActionSaveSegmentationTriggered ();
+
+    void
     seedsChanged ();
 
   private:
