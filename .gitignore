@@ -6,3 +6,4 @@ data/segmentation.pcd
 build/
 bin/
 lib/
+gui/gui.pro.user
