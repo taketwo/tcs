@@ -35,6 +35,7 @@ MainWindow::MainWindow (const std::string& filename, QWidget* parent)
 , ui_ (new Ui::MainWindow)
 , graph_ (new Graph)
 , seed_selection_ (new SeedSelection)
+, state_ (GS_NOT_SEGMENTED)
 {
   srand (time (0));
 
@@ -104,6 +105,7 @@ void
 MainWindow::seedsChanged ()
 {
   displaySeeds ();
+  displayGraphVertices ();
 }
 
 void
@@ -152,6 +154,8 @@ MainWindow::onButtonUpdateGraphClicked ()
   pcl::graph::computeSignedCurvatures (*graph_);
   computeEdgeWeights ();
 
+  setGlobalState (GS_NOT_SEGMENTED);
+
   displayGraphVertices ();
   displayGraphEdges ();
 }
@@ -184,7 +188,9 @@ MainWindow::buttonSegmentClicked ()
   std::string status (boost::str (fmt % (clusters.size () - 1)));
   ui_->status_bar->showMessage (status.c_str ());
 
-  displayGraphVertices (false);
+  setGlobalState (GS_SEGMENTED);
+
+  displayGraphVertices ();
 }
 
 void
@@ -201,21 +207,44 @@ MainWindow::pointPickingCallback (const pcl::visualization::PointPickingEvent& e
 }
 
 void
-MainWindow::displayGraphVertices (bool how)
+MainWindow::displayGraphVertices ()
 {
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr vertices (new pcl::PointCloud<pcl::PointXYZRGB>);
   if (ui_->action_graph_vertices->isChecked ())
   {
     pcl::copyPointCloud (*pcl::graph::point_cloud (*graph_), *vertices);
     boost::get (boost::vertex_color, *graph_);
-    if (how == false)
-      for (size_t i = 0; i < vertices->size (); ++i)
-      {
-        uint32_t label = boost::get (boost::vertex_color, *graph_, i);
-        if (!colormap_.count (label))
-          colormap_[label] = generateRandomColor ();
-        vertices->at (i).rgba = colormap_[label];
-      }
+    switch (state_)
+    {
+      case GS_NOT_SEGMENTED:
+        {
+          break;
+        }
+      case GS_SEGMENTED:
+        {
+          if (ui_->action_highlight_cluster_mode->isChecked ())
+          {
+            for (size_t i = 0; i < vertices->size (); ++i)
+            {
+              uint32_t label = boost::get (boost::vertex_color, *graph_, i);
+              if (label == seed_selection_->getCurrentLabel ())
+                vertices->at (i).rgba = 0xFFFF00;
+              else
+                vertices->at (i).rgba = 0xFF00A0;
+            }
+          }
+          else
+          {
+            for (size_t i = 0; i < vertices->size (); ++i)
+            {
+              uint32_t label = boost::get (boost::vertex_color, *graph_, i);
+              if (!colormap_.count (label))
+                colormap_[label] = generateRandomColor ();
+              vertices->at (i).rgba = colormap_[label];
+            }
+          }
+        }
+    }
   }
   viewer_->updatePointCloud (vertices, "vertices");
   ui_->qvtkWidget->update ();
@@ -375,5 +404,26 @@ MainWindow::loadConfig ()
 
   ui_->action_graph_vertices->setChecked (pt.get ("View.GraphVertices", true));
   ui_->action_graph_edges->setChecked (pt.get ("View.GraphEdges", false));
+}
+
+void
+MainWindow::setGlobalState (GlobalState state)
+{
+  state_ = state;
+  switch (state_)
+  {
+    case GS_NOT_SEGMENTED:
+      {
+        ui_->action_save_segmentation->setEnabled (false);
+        ui_->action_highlight_cluster_mode->setEnabled (false);
+        break;
+      }
+    case GS_SEGMENTED:
+      {
+        ui_->action_save_segmentation->setEnabled (true);
+        ui_->action_highlight_cluster_mode->setEnabled (true);
+        break;
+      }
+  }
 }
 

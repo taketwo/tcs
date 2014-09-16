@@ -114,7 +114,7 @@ class MainWindow : public QMainWindow
     pointPickingCallback (const pcl::visualization::PointPickingEvent& event, void*);
 
     void
-    displayGraphVertices (bool how = true);
+    displayGraphVertices ();
 
     void
     displayGraphEdges (uint32_t color = 0);
@@ -134,6 +134,15 @@ class MainWindow : public QMainWindow
     void
     loadConfig ();
 
+    enum GlobalState
+    {
+      GS_NOT_SEGMENTED,
+      GS_SEGMENTED,
+    };
+
+    void
+    setGlobalState (GlobalState state);
+
     Ui::MainWindow* ui_;
 
     pcl::visualization::PCLVisualizer::Ptr viewer_;
@@ -142,6 +151,8 @@ class MainWindow : public QMainWindow
     GraphPtr graph_;
     SeedSelection::Ptr seed_selection_;
     std::map<uint32_t, uint32_t> colormap_;
+
+    GlobalState state_;
 
 };
 

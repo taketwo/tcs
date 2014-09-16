@@ -53,6 +53,16 @@ class SeedSelection : public QAbstractListModel
     ColoredPointCloudPtr
     getPointCloudForVisualization ();
 
+    uint32_t getCurrentLabel () const
+    {
+      return current_label_;
+    }
+
+    size_t getNumLabels () const
+    {
+      return num_labels_;
+    }
+
   public Q_SLOTS:
 
     void

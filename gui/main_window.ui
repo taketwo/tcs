@@ -39,7 +39,7 @@
      <x>0</x>
      <y>0</y>
      <width>994</width>
-     <height>25</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_file">
@@ -62,6 +62,8 @@
     </property>
     <addaction name="action_graph_vertices"/>
     <addaction name="action_graph_edges"/>
+    <addaction name="separator"/>
+    <addaction name="action_highlight_cluster_mode"/>
    </widget>
    <addaction name="menu_file"/>
    <addaction name="menu_view"/>
@@ -559,8 +561,22 @@
    </property>
   </action>
   <action name="action_save_segmentation">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Save segmentation</string>
+   </property>
+  </action>
+  <action name="action_highlight_cluster_mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Highlight cluster mode</string>
    </property>
   </action>
  </widget>
@@ -755,6 +771,22 @@
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>onActionSaveSegmentationTriggered()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>496</x>
+     <y>334</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_highlight_cluster_mode</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>onActionViewToggled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
