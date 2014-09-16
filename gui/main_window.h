@@ -108,6 +108,12 @@ class MainWindow : public QMainWindow
     void
     seedsChanged ();
 
+    void
+    onKeyUp ();
+
+    void
+    onKeyDown ();
+
   private:
 
     void

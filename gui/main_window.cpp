@@ -5,6 +5,7 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include <QModelIndex>
+#include <QShortcut>
 
 #include <vtkLine.h>
 #include <vtkPolyLine.h>
@@ -76,6 +77,20 @@ MainWindow::MainWindow (const std::string& filename, QWidget* parent)
            this,
            SLOT (seedsChanged ()));
 
+  QShortcut* shortcut_key_up = new QShortcut (QKeySequence (Qt::Key_Up), this);
+  shortcut_key_up->setContext (Qt::ApplicationShortcut);
+  connect (shortcut_key_up,
+           SIGNAL (activated ()),
+           this,
+           SLOT (onKeyUp ()));
+
+  QShortcut* shortcut_key_down = new QShortcut (QKeySequence (Qt::Key_Down), this);
+  shortcut_key_down->setContext (Qt::ApplicationShortcut);
+  connect (shortcut_key_down,
+           SIGNAL (activated ()),
+           this,
+           SLOT (onKeyDown ()));
+
   QModelIndex index = seed_selection_->addNewLabel ();
   ui_->list_labels->selectionModel ()->select (index, QItemSelectionModel::ClearAndSelect);
 
@@ -106,6 +121,24 @@ MainWindow::seedsChanged ()
 {
   displaySeeds ();
   displayGraphVertices ();
+}
+
+void
+MainWindow::onKeyUp ()
+{
+  uint32_t label = seed_selection_->getCurrentLabel ();
+  label = label > 1 ? label - 1 : 1;
+  QModelIndex index = seed_selection_->index (label - 1, 0);
+  ui_->list_labels->selectionModel ()->select (index, QItemSelectionModel::ClearAndSelect);
+}
+
+void
+MainWindow::onKeyDown ()
+{
+  uint32_t label = seed_selection_->getCurrentLabel ();
+  label = label < seed_selection_->getNumLabels () ? label + 1 : seed_selection_->getNumLabels ();
+  QModelIndex index = seed_selection_->index (label - 1, 0);
+  ui_->list_labels->selectionModel ()->select (index, QItemSelectionModel::ClearAndSelect);
 }
 
 void
