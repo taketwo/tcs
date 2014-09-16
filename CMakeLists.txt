@@ -89,6 +89,13 @@ target_link_libraries(segmentation_evaluation
   hungarian
 )
 
+add_executable(create_seeds
+  src/create_seeds.cpp
+)
+target_link_libraries(create_seeds
+  ${PCL_LIBRARIES}
+)
+
 if (WITH_QT_GUI)
   add_subdirectory(gui)
 endif()
