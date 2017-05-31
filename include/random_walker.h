@@ -38,9 +38,11 @@
 #ifndef PCL_SEGMENTATION_RANDOM_WALKER_H
 #define PCL_SEGMENTATION_RANDOM_WALKER_H
 
+#ifndef Q_MOC_RUN
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_concepts.hpp>
 #include <boost/concept/assert.hpp>
+#endif
 
 #include <Eigen/Dense>
 

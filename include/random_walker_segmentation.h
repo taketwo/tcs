@@ -49,8 +49,10 @@
 #include <pcl/search/search.h>
 #include <pcl/search/impl/search.hpp>
 
+#ifndef Q_MOC_RUN
 #include "graph/point_cloud_graph.h"
 #include "graph/voxel_grid_graph_builder.h"
+#endif
 
 namespace pcl
 {

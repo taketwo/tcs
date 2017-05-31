@@ -10,8 +10,10 @@
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
 
+#ifndef Q_MOC_RUN
 #include "seed_selection.h"
 #include "random_walker_segmentation.h"
+#endif
 
 namespace Ui
 {

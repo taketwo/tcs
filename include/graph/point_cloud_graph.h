@@ -38,8 +38,10 @@
 #ifndef PCL_GRAPH_POINT_CLOUD_GRAPH_H
 #define PCL_GRAPH_POINT_CLOUD_GRAPH_H
 
+#ifndef Q_MOC_RUN
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/subgraph.hpp>
+#endif
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
