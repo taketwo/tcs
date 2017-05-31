@@ -47,6 +47,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/search/search.h>
+#include <pcl/search/impl/search.hpp>
 
 #include "graph/point_cloud_graph.h"
 #include "graph/voxel_grid_graph_builder.h"
