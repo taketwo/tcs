@@ -10,6 +10,25 @@
 #include "io.h"
 #include "conversions.h"
 
+namespace detail
+{
+
+/** Set alpha values in color channel to 255 making the point cloud fully opaque. */
+template <typename PointT> void
+makeOpaque (typename std::enable_if<pcl::traits::has_color<PointT>::value, pcl::PointCloud<PointT>>::type& cloud)
+{
+  for (auto& point : cloud.points)
+    point.a = 255;
+}
+
+/** No-op for point clouds without color channel. */
+template <typename PointT> void
+makeOpaque (typename std::enable_if<!pcl::traits::has_color<PointT>::value, pcl::PointCloud<PointT>>::type& cloud)
+{
+}
+
+}
+
 template <typename PointT> bool
 load (const std::string& filename,
       typename pcl::PointCloud<PointT>::Ptr cloud,
@@ -35,6 +54,7 @@ load (const std::string& filename,
       return false;
     }
     pcl::fromPCLPointCloud2 (blob, *cloud);
+    detail::makeOpaque<PointT> (*cloud);
     for (const auto& field : blob.fields)
     {
       if (field.name == "normal_x")
