@@ -41,5 +41,5 @@ target_link_libraries(gui_random_walker_segmentation
   ${QT_LIBRARIES}
   ${PCL_LIBRARIES}
   ${VTK_LIBRARIES}
-  ${TVIEWER_LIBRARIES}
+  tviewer
 )

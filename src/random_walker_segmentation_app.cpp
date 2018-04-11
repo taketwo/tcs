@@ -163,11 +163,11 @@ int main (int argc, char ** argv)
   );
 
   viewer->add
-  ( CreateNormalCloudObject ("normals", "n")
-  . description             ("Vertex normals")
-  . level                   (1)
-  . scale                   (0.01)
-  . data                    (gv.getVerticesNormalsCloud ())
+  ( CreateNormalCloudObject<pcl::PointNormal> ("normals", "n")
+  . description                               ("Vertex normals")
+  . level                                     (1)
+  . scale                                     (0.01)
+  . data                                      (gv.getVerticesNormalsCloud ())
   );
 
   viewer->add

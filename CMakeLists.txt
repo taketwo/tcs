@@ -38,8 +38,6 @@ add_definitions(${PCL_DEFINITIONS})
 
 # TViewer
 add_subdirectory(third-party/tviewer)
-include_directories(${TVIEWER_INCLUDE_DIRS})
-add_definitions(${TVIEWER_DEFINITIONS})
 
 # Hungarian
 add_subdirectory(src/hungarian)
@@ -66,7 +64,7 @@ add_executable(app_random_walker_segmentation
 )
 target_link_libraries(app_random_walker_segmentation
   ${PCL_LIBRARIES}
-  ${TVIEWER_LIBRARIES}
+  tviewer
   random_walker_segmentation
   io
 )
@@ -76,7 +74,7 @@ add_executable(view_point_cloud_graph
 )
 target_link_libraries(view_point_cloud_graph
   ${PCL_LIBRARIES}
-  ${TVIEWER_LIBRARIES}
+  tviewer
   io
 )
 
@@ -85,7 +83,7 @@ add_executable(segmentation_evaluation
 )
 target_link_libraries(segmentation_evaluation
   ${PCL_LIBRARIES}
-  ${TVIEWER_LIBRARIES}
+  tviewer
   hungarian
 )
 

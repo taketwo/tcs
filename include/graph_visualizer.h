@@ -11,7 +11,7 @@
 #include "scaler.h"
 #include "as_range.h"
 #include "tviewer/color.h"
-#include "tviewer/visualization_objects/arrow_array_object.h"
+#include "tviewer/visualization_objects/primitive_array_object.h"
 
 #include "graph/point_cloud_graph.h"
 
@@ -32,10 +32,10 @@ class GraphVisualizer
     {
     }
 
-    tviewer::ArrowsPtr
+    tviewer::PrimitivesPtr
     getEdgesArrowArray ()
     {
-      tviewer::ArrowsPtr arrows (new tviewer::Arrows);
+      tviewer::PrimitivesPtr arrows (new tviewer::Primitives);
       EdgeIterator s, e;
       auto scale = getRangeScalingForEdges ();
       for (boost::tie (s, e) = boost::edges (graph_); s != e; ++s)
